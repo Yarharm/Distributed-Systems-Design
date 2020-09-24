@@ -10,7 +10,7 @@ Generate PI number using Java RMI.
 *Binaries must mimic package structure*
 
 ## Security
-Specify security policy for the Client and a Server.
+Specify security policy for the client and a server.
 Sample security protocol for the complete access in local development.
 ```
 grant {
