@@ -1,9 +1,15 @@
 package server;
 
 import communicate.ICommunicate;
+import communicate.Item;
+import exceptions.IncorrectUserRoleException;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Handler;
+import java.util.logging.Logger;
 
 /*
     StoreProxy is a wrapper on top of Store which performs any necessary validation prior
@@ -25,25 +31,47 @@ public class StoreProxy implements ICommunicate {
     }
 
     private Store store;
-    private String location;
-    public StoreProxy(String location) {
+    private String locationName;
+    private Logger logger;
+    public StoreProxy(String locationName) {
         super();
-        this.store = new Store(location);
-        this.location = location;
+        this.logger = Logger.getLogger(locationName);
+        this.store = new Store(locationName, this.logger);
+        this.locationName = locationName;
+
     }
 
     @Override
-    public boolean addItem(String managerID, String itemID, String itemName, int quantity, int price) {
-        return true;
+    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws IncorrectUserRoleException {
+        try {
+            this.validateUser(managerID, UserRole.M);
+        } catch(IncorrectUserRoleException e) {
+            Item item = new Item(itemID, itemName, quantity, price);
+            this.logger.severe("Permission alert! Customer with ID: " + managerID +
+                    " was trying add the following item: " + item.toString());
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+
+        Item item = this.store.addItem(managerID, itemID, itemName, quantity, price);
+        return item;
     }
 
     @Override
-    public void removeItem(String managerID, String itemID, int quantity, boolean removeCompletely) {
-        return;
+    public Item removeItem(String managerID, String itemID, int quantity) throws IncorrectUserRoleException {
+        try {
+            this.validateUser(managerID, UserRole.M);
+        } catch(IncorrectUserRoleException e) {
+            String msg = quantity == -1 ? "completely remove" : "remove " + quantity + " units from";
+            this.logger.severe("Permission alert! Customer with ID: " + managerID +
+                    " was trying to " + msg + " an item with ID: " + itemID);
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+        Item item = this.store.removeItem(managerID, itemID, quantity);
+        return item;
     }
 
     @Override
-    public List<String> listItemAvailability(String managerID) {
+    public List<Item> listItemAvailability(String managerID) {
         return this.store.listItemAvailability(managerID);
     }
 
@@ -53,7 +81,7 @@ public class StoreProxy implements ICommunicate {
     }
 
     @Override
-    public List<String> findItem(String customerID, String itemName) {
+    public List<Item> findItem(String customerID, String itemName) {
         return null;
     }
 
@@ -62,9 +90,9 @@ public class StoreProxy implements ICommunicate {
         return true;
     }
 
-    public void initializeStore() {
+    public void initializeStore(int port) {
         Runnable startStore = () -> {
-            this.store.listen();
+            this.store.listen(port);
         };
         Thread storeThread = new Thread(startStore);
         storeThread.start();
@@ -77,9 +105,11 @@ public class StoreProxy implements ICommunicate {
         }
     }
 
-    private class IncorrectUserRoleException extends Exception {
-        public IncorrectUserRoleException(String errorMessage) {
-            super(errorMessage);
-        }
+    public void setupLogger() throws IOException {
+        String logFile = this.locationName + ".log";
+        Handler fileHandler  = new FileHandler("/Users/yaroslav/school/423/Distributed-Systems-Design/" +
+                "Supply_Management_System/logs/stores/" + logFile);
+        this.logger.setUseParentHandlers(false);
+        this.logger.addHandler(fileHandler);
     }
 }
