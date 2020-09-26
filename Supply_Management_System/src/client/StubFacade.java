@@ -1,48 +1,42 @@
 package client;
 
 import communicate.ICommunicate;
+import communicate.Item;
+import exceptions.IncorrectUserRoleException;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
 /*
     Client Stub for communication with remote objects.
-    Implements Facade interface.
  */
 public class StubFacade implements ICommunicate {
-    private String location;
+    private String locationName;
 
-    public StubFacade(String location) {
+    public StubFacade(String locationName) {
         super();
-        this.location = location;
+        this.locationName = locationName;
     }
 
     @Override
-    public boolean addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException {
+    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException {
         ICommunicate store = this.fetchStore();
-        if(store == null) {
-            return false;
-        }
         return store.addItem(managerID, itemID, itemName, quantity, price);
     }
 
     @Override
-    public void removeItem(String managerID, String itemID, int quantity, boolean removeCompletely) throws RemoteException {
-        return;
+    public Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException {
+        ICommunicate store = this.fetchStore();
+        return store.removeItem(managerID, itemID, quantity);
     }
 
     @Override
-    public List<String> listItemAvailability(String managerID) throws RemoteException {
-        ICommunicate store = this.fetchStore();
-        if(store == null) {
-            return new ArrayList<>(Arrays.asList("COULD Not fetch registry"));
-        }
-        return store.listItemAvailability(managerID);
+    public List<Item> listItemAvailability(String managerID) throws RemoteException {
+        return null;
     }
 
     @Override
@@ -51,7 +45,7 @@ public class StubFacade implements ICommunicate {
     }
 
     @Override
-    public List<String> findItem(String customerID, String itemName) throws RemoteException {
+    public List<Item> findItem(String customerID, String itemName) throws RemoteException {
         return null;
     }
 
@@ -60,15 +54,9 @@ public class StubFacade implements ICommunicate {
         return true;
     }
 
-    public ICommunicate fetchStore() {
-        ICommunicate store = null;
-        try {
-            Registry registry = LocateRegistry.getRegistry("127.0.0.1");
-            store = (ICommunicate) registry.lookup(this.location);
-        }  catch (Exception e) {
-            System.err.println("Could not fetch registry:");
-            e.printStackTrace();
-        }
+    public ICommunicate fetchStore() throws RemoteException, NotBoundException {
+        Registry registry = LocateRegistry.getRegistry("127.0.0.1");
+        ICommunicate store = (ICommunicate) registry.lookup(this.locationName);
 
         return store;
     }

@@ -1,48 +1,42 @@
 package client;
 
+import exceptions.IncorrectUserRoleException;
+
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.util.ArrayList;
-import java.util.List;
+import java.rmi.NotBoundException;
 
-public class User {
-    public static class InnerClass implements Runnable{
-        public List<String> res;
-        public Manager mngr;
-        public InnerClass(Manager mngr) {
-            res = new ArrayList<>();
-            this.mngr = mngr;
-        }
-        @Override
-        public void run() {
-            try{
-                res = this.mngr.listItemAvailability("IQ");
-            } catch(Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
 
+public class UserDriver {
     public static void main(String args[]) {
         if (System.getSecurityManager() == null) {
             System.setSecurityManager(new SecurityManager());
         }
         try {
-            Manager mngr = new Manager("QCM1111", "QC");
-            List<String> res = new ArrayList<>();
-            InnerClass ic = new InnerClass(mngr);
-            Thread threadRMI = new Thread(ic);
-            threadRMI.start();
-            System.out.println("Now fetching using UDP");
-            sendMessage(8888, "Hello UDP");
-            threadRMI.join();
-            res.addAll(ic.res);
-            System.out.println(res);
+            Manager managerQC = new Manager("QCM1111", "QC");
+            managerQC.setupLogger();
+            Manager managerBC = new Manager("BCM2222", "BC");
+            managerBC.setupLogger();
+
+            managerQC.addItem("QCM1111", "QC1111", "cola", 2, 20);
+            managerQC.addItem("QCM1111", "QC1111", "cola", 3, 50);
+            managerQC.removeItem("QCM1111", "QC1111", 3);
+
+            managerBC.addItem("BCM4444", "BC3333", "noodles", 5, 55);
+            managerBC.removeItem("BCM4444", "BC3333", -1);
+
+            managerQC.removeItem("QCM1111", "QC1111", 3);
+            managerBC.addItem("BCU1234", "BC3333", "noodles", 5, 55);
+        } catch(IOException e) {
+            System.err.println("Could not setup user logger");
+            e.printStackTrace();
+        } catch(NotBoundException e) {
+            System.err.println("Could not lookup store in registry");
         } catch (Exception e) {
-            System.err.println("ComputePi exception:");
+            System.err.println("User exception:");
             e.printStackTrace();
         }
     }
