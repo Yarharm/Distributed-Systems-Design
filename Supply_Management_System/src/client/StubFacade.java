@@ -2,7 +2,10 @@ package client;
 
 import communicate.ICommunicate;
 import communicate.Item;
+import exceptions.ExternalStorePurchaseLimitException;
 import exceptions.IncorrectUserRoleException;
+import exceptions.ItemOutOfStockException;
+import exceptions.NotEnoughFundsException;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -35,23 +38,33 @@ public class StubFacade implements ICommunicate {
     }
 
     @Override
-    public List<Item> listItemAvailability(String managerID) throws RemoteException {
-        return null;
+    public List<Item> listItemAvailability(String managerID) throws RemoteException, IncorrectUserRoleException, NotBoundException {
+        ICommunicate store = this.fetchStore();
+        return store.listItemAvailability(managerID);
     }
 
     @Override
-    public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException {
-        return true;
+    public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException,
+            IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException {
+        ICommunicate store = this.fetchStore();
+        return store.purchaseItem(customerID, itemID, dateOfPurchase);
     }
 
     @Override
-    public List<Item> findItem(String customerID, String itemName) throws RemoteException {
-        return null;
+    public List<String> findItem(String customerID, String itemName) throws RemoteException, IncorrectUserRoleException, NotBoundException {
+        ICommunicate store = this.fetchStore();
+        return store.findItem(customerID, itemName);
     }
 
     @Override
     public boolean returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException {
         return true;
+    }
+
+    @Override
+    public void addCustomerToWaitQueue(String customerID, String itemID) throws RemoteException, NotBoundException {
+        ICommunicate store = this.fetchStore();
+        store.addCustomerToWaitQueue(customerID, itemID);
     }
 
     public ICommunicate fetchStore() throws RemoteException, NotBoundException {

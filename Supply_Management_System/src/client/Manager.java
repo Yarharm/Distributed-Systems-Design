@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class Manager implements IManager {
     private String managerID;
@@ -57,8 +58,18 @@ public class Manager implements IManager {
     }
 
     @Override
-    public List<Item> listItemAvailability(String managerID) throws RemoteException {
-        return this.stub.listItemAvailability(managerID);
+    public List<Item> listItemAvailability(String managerID) throws RemoteException, NotBoundException {
+        List<Item> items = null;
+        try {
+            items = this.stub.listItemAvailability(managerID);
+            String itemStr = items.stream().map(item -> item.getItemID() + " " + item.getItemName() + " " + item.getPrice() + " " + item.getQuantity())
+                    .collect(Collectors.joining(", "));
+            this.logger.info(managerID + " requested a list of available items: " + itemStr);
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Customer with ID: " + managerID + "" +
+                    " was trying to list all available items in the store.");
+        }
+        return items;
     }
 
     public void setupLogger() throws IOException {

@@ -7,7 +7,7 @@ Navigate to the root dir and execute __generateBin.sh__ located in tools
 ```
 
 ### Initalize
-* Registry
+* Registry (Always executed from __bin__ folder)
 ```
 rmiregistry &
 ```
@@ -29,9 +29,10 @@ lsof -Pan -i udp | grep java
 ### Tests
 * Add new Item
 * Update an existing Item
+* Test __findItem__ with target store having no entries
 
 ### Use Case clarification
-* If we addItem with userID and registry exception happens then do we add it to the log or let exception flow.
-* How server can know that addItem operation was not successful if we have a Registry exception.
-* Do we need to log invalidUser
 * What if itemID does not belong to the store where manager is trying to put it in.
+* Are BC users exist in BC store only? If that's the case, how can I assign an item to them, without UDP.
+* There can be only 1 manager per store? And if it's the case, should it block other managers?
+* If customer in queue is from a different store, do we need to send UDP call to the appropriate store.

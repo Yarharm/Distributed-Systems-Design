@@ -1,6 +1,9 @@
 package communicate;
 
+import exceptions.ExternalStorePurchaseLimitException;
 import exceptions.IncorrectUserRoleException;
+import exceptions.ItemOutOfStockException;
+import exceptions.NotEnoughFundsException;
 
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
@@ -17,10 +20,13 @@ public interface ICommunicate extends Remote, ICustomer, IManager {
     // Manager roles
     Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException;
     Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException;
-    List<Item> listItemAvailability(String managerID) throws RemoteException;
+    List<Item> listItemAvailability(String managerID) throws RemoteException, NotBoundException, IncorrectUserRoleException;
 
     // Customer roles
-    boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException;
-    List<Item> findItem(String customerID, String itemName) throws RemoteException;
-    boolean returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException;
+    boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException,
+            IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException;
+    List<String> findItem(String customerID, String itemName) throws RemoteException, IncorrectUserRoleException, NotBoundException;
+    boolean returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException, IncorrectUserRoleException, NotBoundException;
+
+    void addCustomerToWaitQueue(String customerID, String itemID) throws RemoteException, NotBoundException;
 }

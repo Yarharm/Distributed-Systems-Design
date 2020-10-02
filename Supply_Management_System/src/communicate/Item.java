@@ -1,6 +1,8 @@
 package communicate;
 
 import java.io.Serializable;
+import java.util.Arrays;
+import java.util.List;
 
 public class Item implements Serializable {
     private static final long serialVersionUID = 1L;
@@ -22,13 +24,17 @@ public class Item implements Serializable {
                 ", quantity=" + quantity + ", price=" + price;
     }
 
+    public String serializeByName() {
+        return this.itemID + " " + this.quantity + " " + this.price;
+    }
+
     public void setQuantity(int quantity) {
         this.quantity = quantity;
     }
-
     public String getItemID() {
         return this.itemID;
     }
+    public void removeSingleQuantity() { this.quantity--; }
     public String getItemName() {
         return this.itemName;
     }
