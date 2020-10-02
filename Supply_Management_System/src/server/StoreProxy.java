@@ -2,11 +2,15 @@ package server;
 
 import communicate.ICommunicate;
 import communicate.Item;
+import exceptions.ExternalStorePurchaseLimitException;
 import exceptions.IncorrectUserRoleException;
+import exceptions.ItemOutOfStockException;
+import exceptions.NotEnoughFundsException;
 
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
@@ -33,10 +37,10 @@ public class StoreProxy implements ICommunicate {
     private Store store;
     private String locationName;
     private Logger logger;
-    public StoreProxy(String locationName) {
+    public StoreProxy(String locationName, Map<String, Integer> portsConfig) {
         super();
         this.logger = Logger.getLogger(locationName);
-        this.store = new Store(locationName, this.logger);
+        this.store = new Store(locationName, this.logger, portsConfig);
         this.locationName = locationName;
 
     }
@@ -71,18 +75,56 @@ public class StoreProxy implements ICommunicate {
     }
 
     @Override
-    public List<Item> listItemAvailability(String managerID) {
-        return this.store.listItemAvailability(managerID);
+    public List<Item> listItemAvailability(String managerID) throws IncorrectUserRoleException {
+        try {
+            this.validateUser(managerID, UserRole.M);
+        } catch(IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Customer with ID: " + managerID + "" +
+                    " was trying to list available items in the store.");
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+        List<Item> items = this.store.listItemAvailability(managerID);
+        return items;
     }
 
     @Override
-    public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) {
-        return true;
+    public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase)throws IncorrectUserRoleException,
+            ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException {
+        Boolean purchaseStatus = false;
+        try {
+            this.validateUser(customerID, UserRole.U);
+            purchaseStatus = this.store.purchaseItem(customerID, itemID, dateOfPurchase);
+        } catch(ItemOutOfStockException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to purchase an item with ID:" +
+                    " " + itemID + " on " + dateOfPurchase + ", but such an item is out of stock.");
+            throw new ItemOutOfStockException(e.getMessage());
+        } catch(NotEnoughFundsException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to purchase an item with" +
+                    " ID: " + itemID + " on " + dateOfPurchase + ", but does not have enough funds.");
+            throw new NotEnoughFundsException(e.getMessage());
+        } catch(ExternalStorePurchaseLimitException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to purchase an item with" +
+                    " ID: " + itemID + " on " + dateOfPurchase + ", but he/she already made purchase from " +
+                    "" + e.getMessage() + " store.");
+            throw new ExternalStorePurchaseLimitException(e.getMessage());
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Manager with ID: " + customerID + "" +
+                    " was trying to purchase an item with ID: " + itemID + " on " + dateOfPurchase);
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+        return purchaseStatus;
     }
 
     @Override
-    public List<Item> findItem(String customerID, String itemName) {
-        return null;
+    public List<String> findItem(String customerID, String itemName) throws IncorrectUserRoleException {
+        try {
+            this.validateUser(customerID, UserRole.U);
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Manager with ID: " + customerID + " " +
+                    "was trying to find items with " + itemName + " name.");
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+        return this.store.findItem(customerID, itemName);
     }
 
     @Override
@@ -90,12 +132,14 @@ public class StoreProxy implements ICommunicate {
         return true;
     }
 
-    public void initializeStore(int port) {
-        Runnable startStore = () -> {
-            this.store.listen(port);
-        };
-        Thread storeThread = new Thread(startStore);
-        storeThread.start();
+    @Override
+    public void addCustomerToWaitQueue(String customerID, String itemID) {
+        this.store.addCustomerToWaitQueue(customerID, itemID);
+    }
+
+    public void initializeStore() throws IOException {
+        this.store.listen();
+        setupLogger();
     }
 
     private void validateUser(String userID, UserRole expectedRole) throws IncorrectUserRoleException {
@@ -105,7 +149,7 @@ public class StoreProxy implements ICommunicate {
         }
     }
 
-    public void setupLogger() throws IOException {
+    private void setupLogger() throws IOException {
         String logFile = this.locationName + ".log";
         Handler fileHandler  = new FileHandler("/Users/yaroslav/school/423/Distributed-Systems-Design/" +
                 "Supply_Management_System/logs/stores/" + logFile);
