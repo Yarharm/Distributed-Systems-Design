@@ -10,5 +10,7 @@ public final class RequestTypesUDP {
     public static final String PURCHASE_ITEM = "PURCHASE_ITEM";
     public static final String RETURN_ITEM = "RETURN_ITEM";
     public static final String ADD_CUSTOMER_TO_WAIT_QUEUE = "ADD_CUSTOMER_TO_WAIT_QUEUE";
+    public static final String AUTOMATICALLY_ASSIGN_ITEM = "AUTOMATICALLY_ASSIGN_ITEM";
+    public static final String CLEAR_ALL_ITEM_PURCHASES = "CLEAR_ALL_ITEM_PURCHASES";
 
 }

@@ -3,6 +3,7 @@ package client;
 import communicate.IManager;
 import communicate.Item;
 import exceptions.IncorrectUserRoleException;
+import exceptions.ManagerExternalStoreItemException;
 
 import java.io.IOException;
 import java.rmi.NotBoundException;
@@ -14,10 +15,10 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 public class Manager implements IManager {
-    private String managerID;
-    private String locationName;
-    private StubFacade stub;
-    private Logger logger;
+    private final String managerID;
+    private final String locationName;
+    private final StubFacade stub;
+    private final Logger logger;
 
     public Manager(String managerID, String locationName) {
         super();
@@ -38,6 +39,9 @@ public class Manager implements IManager {
             item = new Item(itemID, itemName, quantity, price);
             this.logger.severe("Permission alert! Customer with ID: " + managerID + " is not allowed to add items." +
                     " Customer was trying to add the following item: " + item.toString());
+        } catch(ManagerExternalStoreItemException e) {
+            this.logger.severe("Manager with ID: " + managerID + " was trying to add an item " + itemID + " which" +
+                    " belongs to a different store.");
         }
         return item;
     }
@@ -53,6 +57,9 @@ public class Manager implements IManager {
             String msg = quantity == -1 ? "" : quantity + " units from ";
             this.logger.severe("Permission alert! Customer with ID: " + managerID + " " +
                     "was trying to remove " + msg + "an item with ID: " + itemID);
+        } catch(ManagerExternalStoreItemException e) {
+            this.logger.severe("Manager with ID: " + managerID + " was trying to remove item " + itemID + " which" +
+                    " belongs to a different store.");
         }
         return item;
     }
