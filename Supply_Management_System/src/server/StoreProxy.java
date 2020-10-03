@@ -2,10 +2,7 @@ package server;
 
 import communicate.ICommunicate;
 import communicate.Item;
-import exceptions.ExternalStorePurchaseLimitException;
-import exceptions.IncorrectUserRoleException;
-import exceptions.ItemOutOfStockException;
-import exceptions.NotEnoughFundsException;
+import exceptions.*;
 
 import java.io.IOException;
 import java.util.Date;
@@ -128,8 +125,29 @@ public class StoreProxy implements ICommunicate {
     }
 
     @Override
-    public boolean returnItem(String customerID, String itemID, Date dateOfReturn) {
-        return true;
+    public void returnItem(String customerID, String itemID, Date dateOfReturn) throws ReturnPolicyException,
+            CustomerNeverPurchasedItemException, ItemWasNeverPurchasedException, IncorrectUserRoleException {
+        try {
+            this.validateUser(customerID, UserRole.U);
+            this.store.returnItem(customerID, itemID, dateOfReturn);
+        } catch (ReturnPolicyException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + itemID + "" +
+                    " , but it is beyond the return policy.");
+            throw new ReturnPolicyException(e.getMessage());
+        } catch (CustomerNeverPurchasedItemException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + itemID + "" +
+                    " , but the customer never purchased such an item.");
+            throw new CustomerNeverPurchasedItemException(e.getMessage());
+        } catch (ItemWasNeverPurchasedException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + itemID + "" +
+                    " , but such an item was never purchased from the store.");
+            throw new ItemWasNeverPurchasedException(e.getMessage());
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Manager with ID: " + customerID + " was trying to return an item" +
+                    " with ID: " + itemID);
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+
     }
 
     @Override

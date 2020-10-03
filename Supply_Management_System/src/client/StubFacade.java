@@ -2,10 +2,7 @@ package client;
 
 import communicate.ICommunicate;
 import communicate.Item;
-import exceptions.ExternalStorePurchaseLimitException;
-import exceptions.IncorrectUserRoleException;
-import exceptions.ItemOutOfStockException;
-import exceptions.NotEnoughFundsException;
+import exceptions.*;
 
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -45,7 +42,8 @@ public class StubFacade implements ICommunicate {
 
     @Override
     public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException,
-            IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException {
+            IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException
+    {
         ICommunicate store = this.fetchStore();
         return store.purchaseItem(customerID, itemID, dateOfPurchase);
     }
@@ -57,8 +55,11 @@ public class StubFacade implements ICommunicate {
     }
 
     @Override
-    public boolean returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException {
-        return true;
+    public void returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException, NotBoundException,
+            ItemWasNeverPurchasedException, ReturnPolicyException, IncorrectUserRoleException, CustomerNeverPurchasedItemException
+    {
+        ICommunicate store = this.fetchStore();
+        store.returnItem(customerID, itemID, dateOfReturn);
     }
 
     @Override
