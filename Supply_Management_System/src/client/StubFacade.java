@@ -23,13 +23,13 @@ public class StubFacade implements ICommunicate {
     }
 
     @Override
-    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException {
+    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException {
         ICommunicate store = this.fetchStore();
         return store.addItem(managerID, itemID, itemName, quantity, price);
     }
 
     @Override
-    public Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException {
+    public Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException {
         ICommunicate store = this.fetchStore();
         return store.removeItem(managerID, itemID, quantity);
     }
@@ -41,11 +41,11 @@ public class StubFacade implements ICommunicate {
     }
 
     @Override
-    public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException,
+    public void purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException,
             IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException
     {
         ICommunicate store = this.fetchStore();
-        return store.purchaseItem(customerID, itemID, dateOfPurchase);
+        store.purchaseItem(customerID, itemID, dateOfPurchase);
     }
 
     @Override

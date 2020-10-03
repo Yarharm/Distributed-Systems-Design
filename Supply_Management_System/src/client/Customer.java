@@ -16,27 +16,22 @@ import java.util.logging.Logger;
 
 public class Customer implements ICustomer {
     private final String customerID;
-    private final String locationName;
     private final StubFacade stub;
     private final Logger logger;
 
     public Customer(String customerID, String locationName) {
         super();
         this.customerID = customerID;
-        this.locationName = locationName;
         this.stub = new StubFacade(locationName);
         this.logger = Logger.getLogger(customerID);
     }
 
     @Override
-    public boolean purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException {
-        boolean purchaseStatus = false;
+    public void purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException {
         try {
-            purchaseStatus = this.stub.purchaseItem(customerID, itemID, dateOfPurchase);
-            if(purchaseStatus) {
-                this.logger.info("Customer with ID: " + customerID + " successfully purchased an item with ID: " + itemID + "" +
-                        " on " + dateOfPurchase + ".");
-            }
+            this.stub.purchaseItem(customerID, itemID, dateOfPurchase);
+            this.logger.info("Customer with ID: " + customerID + " successfully purchased an item with ID: " + itemID + "" +
+                    " on " + dateOfPurchase + ".");
         } catch(ItemOutOfStockException e) {
             boolean addToQueue = this.addToQueuePrompt();
             String message =  "Did not add customer to the Queue.";
@@ -59,7 +54,6 @@ public class Customer implements ICustomer {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + "" +
                     " was trying to purchase an item with ID: " + itemID + " on " + dateOfPurchase);
         }
-        return purchaseStatus;
     }
 
     @Override
