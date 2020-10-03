@@ -1,10 +1,7 @@
 package client;
 
 import communicate.ICustomer;
-import exceptions.ExternalStorePurchaseLimitException;
-import exceptions.IncorrectUserRoleException;
-import exceptions.ItemOutOfStockException;
-import exceptions.NotEnoughFundsException;
+import exceptions.*;
 
 import java.io.IOException;
 import java.rmi.NotBoundException;
@@ -83,8 +80,25 @@ public class Customer implements ICustomer {
     }
 
     @Override
-    public boolean returnItem(String customerID, String itemID, Date dateOfReturn) {
-        return true;
+    public void returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException, NotBoundException {
+        try {
+            this.stub.returnItem(customerID, itemID, dateOfReturn);
+            this.logger.info("Customer with ID: " + customerID + " successfully returned an item with ID: " + itemID + "" +
+                    " on " + dateOfReturn + ".");
+        } catch (ReturnPolicyException e) {
+            this.logger.info("Customer with ID: " + customerID + " was trying to return an item with ID: " + itemID + "" +
+                    ", but it is beyond a Return Policy.");
+        } catch (ItemWasNeverPurchasedException e) {
+            this.logger.info("Customer with ID: " + customerID + " was trying to return an item with ID: " + itemID + "" +
+                    ", but such an item was never purchased from the store.");
+        } catch (CustomerNeverPurchasedItemException e) {
+            this.logger.info("Customer with ID: " + customerID + " was trying to return an item with ID: " + itemID + "" +
+                    ", but the customer never purchased such an item.");
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Manager with ID: " + customerID + " was trying return an item" +
+                    " with ID: " + itemID);
+        }
+
     }
 
     public void setupLogger() throws IOException {

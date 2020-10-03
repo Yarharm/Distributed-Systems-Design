@@ -20,33 +20,38 @@ public class UserDriver {
             DateFormat sourceFormat = new SimpleDateFormat("ddMMyyyy");
             Manager managerQC = new Manager("QCM1111", "QC");
             managerQC.setupLogger();
-//            Manager managerBC = new Manager("BCM2222", "BC");
-//            managerBC.setupLogger();
+            Manager managerBC = new Manager("BCM2222", "BC");
+            managerBC.setupLogger();
 
 //            managerQC.addItem("QCM1111", "QC1111", "cola", 2, 20);
 //            managerQC.addItem("QCM1111", "QC1111", "cola", 3, 50);
             // managerQC.addItem("QCM1111", "QC2222", "bacon", 1, 10);
-            managerQC.addItem("QCM1111", "QC3333", "gold", 7, 100);
-//            managerQC.addItem("QCM1111", "QC3333", "meat", 4, 14);
+//             managerQC.addItem("QCM1111", "QC3333", "gold", 7, 100);
 //            managerQC.listItemAvailability("QCM1111");
 //            managerQC.listItemAvailability("QCU1234");
 //            managerQC.removeItem("QCM1111", "QC1111", 3);
 //            managerQC.removeItem("QCM1111", "QC1111", 3);
 //
-            // managerBC.addItem("BCM4444", "BC3333", "bacon", 5, 55);
+              managerBC.addItem("BCM4444", "BC3333", "bacon", 5, 55);
 //            managerBC.removeItem("BCM4444", "BC3333", -1);
-//            managerBC.addItem("BCU1234", "BC3333", "noodles", 5, 55);
-//            Customer customerQC = new Customer("QCU9999", "QC");
-//            customerQC.setupLogger();
+//            managerBC.addItem("BCM1234", "BC3333", "noodles", 5, 55);
+            Customer customerQC = new Customer("QCU9999", "QC");
+            customerQC.setupLogger();
 
             // customerON.findItem("ONU9999","bacon");
 //            customerQC.purchaseItem("QCU9999", "QC3456", sourceFormat.parse("23021999"));
 //            customerQC.purchaseItem("QCU9999", "QC2222", sourceFormat.parse("23022005"));
-//            customerQC.purchaseItem("QCU9999", "QC3333", sourceFormat.parse("23022020"));
-            Customer customerBC = new Customer("BCU1234", "BC");
-            customerBC.setupLogger();
-            //customerBC.purchaseItem("BCU1234", "QC2222", sourceFormat.parse("23021999"));
-            customerBC.purchaseItem("BCU1234", "QC3333", sourceFormat.parse("23021999"));
+//            customerQC.purchaseItem("QCU9999", "QC3333", sourceFormat.parse("01022020"));
+//            customerQC.returnItem("QCU9999", "QC3333", sourceFormat.parse("29022020"));
+            customerQC.purchaseItem("QCU9999", "BC3333", sourceFormat.parse("01022020"));
+            customerQC.returnItem("QCU9999", "BC1234", sourceFormat.parse("15042020"));
+            customerQC.returnItem("QCU9999", "BC3333", sourceFormat.parse("29022020"));
+//            customerQC.purchaseItem("QCU9999", "BC3333", sourceFormat.parse("23022020"));
+//            customerQC.returnItem("QCU9999", "BC3333", sourceFormat.parse("29022020"));
+//            Customer customerBC = new Customer("BCU1234", "BC");
+//            customerBC.setupLogger();
+//            //customerBC.purchaseItem("BCU1234", "QC2222", sourceFormat.parse("23021999"));
+//            customerBC.purchaseItem("BCU1234", "QC3333", sourceFormat.parse("23021999"));
 
         } catch(IOException e) {
             System.err.println("Could not setup user logger");
