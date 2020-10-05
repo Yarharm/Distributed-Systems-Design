@@ -105,7 +105,7 @@ public class Store implements ICommunicate {
                                 String store = args.get(1);
                                 String itemID = args.get(2);
                                 Store.this.logger.info("Received request to " + CLEAR_ALL_ITEM_PURCHASES + " from " +
-                                        "" + store + " store.");
+                                        "" + store + " store for item with ID: " + itemID + ".");
                                 Store.this.clearExternalPurchasesByitemIDSync(store, itemID);
                                 buf = this.handler.marshallMesage(Collections.singletonList(UDP_REQUEST_STATUS_SUCCESS));
                             }
@@ -133,13 +133,13 @@ public class Store implements ICommunicate {
     private static final String AUTOMATIC_STORE_MANAGER = "AUTOMATIC_STORE_MANAGER";
     private final String locationName;
     private final Map<String, Item> items;
-    private final Map<String, Set<String>> itemsByName; // itemName -> itemID
+    private final Map<String, Set<String>> itemsByName;
     private final Map<String, Integer> customers;
     private final Map<String, Deque<String>> itemsWaitlist;
-    private final Map<String, Map<String, TreeSet<Long>>> locallyPurchasedItems; // itemID -> customerID -> dates[0..*]
-    private final Map<String, Map<String, Long>> externallyPurchasedItems; // itemID -> customerID -> date
-    private final Map<String, Set<String>> customersWithExternalPurchases; // customerID -> Store[0..*]
-    private final Map<String, Item> itemHistory; // complete history of items served in this store
+    private final Map<String, Map<String, TreeSet<Long>>> locallyPurchasedItems;
+    private final Map<String, Map<String, Long>> externallyPurchasedItems;
+    private final Map<String, Set<String>> customersWithExternalPurchases;
+    private final Map<String, Item> itemHistory;
     private final Logger logger;
     private final ReadWriteLock lock;
     private final Map<String, Integer> portsConfig;
@@ -161,12 +161,15 @@ public class Store implements ICommunicate {
     }
 
     @Override
-    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) {
+    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws ManagerItemPriceMismatchException {
         this.lock.writeLock().lock();
         Item item = new Item(itemID, itemName, quantity, price);
         try {
             String message =  "added a new item.";
             if(this.items.containsKey(itemID)) {
+                if(this.items.get(itemID).getPrice() != price && !managerID.equals(AUTOMATIC_STORE_MANAGER)) {
+                    throw new ManagerItemPriceMismatchException("Add item unsuccessful. Item price does not match");
+                }
                 int oldQuantity = this.items.get(itemID).getQuantity();
                 item.setQuantity(quantity + oldQuantity);
                 message = "updated an existing item.";
@@ -186,18 +189,17 @@ public class Store implements ICommunicate {
     }
 
     @Override
-    public Item removeItem(String managerID, String itemID, int quantity) {
+    public Item removeItem(String managerID, String itemID, int quantity) throws ManagerRemoveBeyondQuantityException, ManagerRemoveNonExistingItemException {
         this.lock.writeLock().lock();
         Item item = null;
         try {
             if(!this.items.containsKey(itemID)) {
-                String msg = quantity == -1 ? "completely remove" : "remove " + quantity + " units from";
-                this.logger.info("Manager with ID: " + managerID + " was trying to " +
-                        "" + msg + " an item with ID: " + itemID + "" +
-                        ", but such an item does not exists in a store.");
-                return null;
+                throw new ManagerRemoveNonExistingItemException("Item does not exist");
             }
             item = this.items.get(itemID);
+            if(item.getQuantity() < quantity) {
+                throw new ManagerRemoveBeyondQuantityException("Can not remove beyond the quantity.");
+            }
             int updatedQuantity = item.getQuantity() - quantity;
             if(quantity == -1 || updatedQuantity <= 0) {
                 this.removeItemFromStore(item);
@@ -210,7 +212,7 @@ public class Store implements ICommunicate {
                 executor.shutdown();
                 this.logger.info("Manager with ID: " + managerID + " " +
                         "has completely removed an item with ID: " + itemID);
-                return null;
+                return item;
             }
             item.setQuantity(updatedQuantity);
             this.items.put(itemID, item);
@@ -305,7 +307,8 @@ public class Store implements ICommunicate {
     }
 
     @Override
-    public void returnItem(String customerID, String itemID, Date dateOfReturn) throws ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ReturnPolicyException {
+    public void returnItem(String customerID, String itemID, Date dateOfReturn) throws ItemWasNeverPurchasedException,
+            CustomerNeverPurchasedItemException, ReturnPolicyException {
         String store = this.getStore(itemID);
         Calendar cal = Calendar.getInstance();
         cal.setTime(dateOfReturn);
@@ -356,7 +359,7 @@ public class Store implements ICommunicate {
             this.customers.put(customerID, this.customers.get(customerID) + productPrice);
             this.logger.info("Successfully returned item with ID: " + itemID + " purchased by the customer " +
                     "with ID: " + customerID + " on " + dateOfReturn);
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | ManagerItemPriceMismatchException e) {
             e.printStackTrace();
         } finally {
             this.lock.writeLock().unlock();
@@ -455,9 +458,8 @@ public class Store implements ICommunicate {
         this.lock.writeLock().lock();
         try {
             if(this.externallyPurchasedItems.containsKey(itemID)) {
-                for(String customerID : this.externallyPurchasedItems.get(itemID).keySet()) {
-                    this.customersWithExternalPurchases.get(customerID).remove(store);
-                }
+                this.externallyPurchasedItems.get(itemID).keySet()
+                        .forEach(customerID -> this.customersWithExternalPurchases.get(customerID).remove(store));
                 this.externallyPurchasedItems.remove(itemID);
             }
         } finally {
@@ -491,6 +493,9 @@ public class Store implements ICommunicate {
                 if(assignmentStatus) {
                     this.logger.info("Automatically assigned item with ID: " + itemID + " to the " +
                             "customer with ID: " + customerID);
+                } else {
+                    this.logger.info("Attempted to automatically assigned item with ID: " + itemID + " to the " +
+                            "customer with ID: " + customerID + " but customer does not have enough funds.");
                 }
             } catch (ItemOutOfStockException | NotEnoughFundsException | InterruptedException | ExecutionException e) {
                 e.printStackTrace();
@@ -510,7 +515,9 @@ public class Store implements ICommunicate {
         this.checkoutLocalPurchase(customerID, itemID, budget, item, dateOfPurchase.getTime());
     }
 
-    private void purchaseItemExternally(String store, String customerID, String itemID, Date dateOfPurchase) throws ExecutionException, InterruptedException, ItemOutOfStockException, NotEnoughFundsException {
+    private void purchaseItemExternally(String store, String customerID, String itemID, Date dateOfPurchase) throws ExecutionException,
+            InterruptedException, ItemOutOfStockException, NotEnoughFundsException
+    {
         int budget = this.getClientBudgetSync(customerID);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         Future<List<String>> future = executor.submit(new StoreClientUDP(Arrays.asList(PURCHASE_ITEM, this.locationName, customerID, String.valueOf(budget), itemID),

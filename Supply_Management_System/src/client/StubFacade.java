@@ -23,13 +23,15 @@ public class StubFacade implements ICommunicate {
     }
 
     @Override
-    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException {
+    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException,
+            IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException, ManagerItemPriceMismatchException
+    {
         ICommunicate store = this.fetchStore();
         return store.addItem(managerID, itemID, itemName, quantity, price);
     }
 
     @Override
-    public Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException {
+    public Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException, ManagerRemoveBeyondQuantityException, ManagerRemoveNonExistingItemException {
         ICommunicate store = this.fetchStore();
         return store.removeItem(managerID, itemID, quantity);
     }
