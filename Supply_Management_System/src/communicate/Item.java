@@ -1,15 +1,13 @@
 package communicate;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
 
 public class Item implements Serializable {
     private static final long serialVersionUID = 1L;
-    private String itemID;
-    private String itemName;
+    private final String itemID;
+    private final String itemName;
+    private final int price;
     private int quantity;
-    private int price;
 
     public Item(String itemID, String itemName, int quantity, int price) {
         this.itemID = itemID;

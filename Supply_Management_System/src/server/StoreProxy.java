@@ -43,10 +43,15 @@ public class StoreProxy implements ICommunicate {
     }
 
     @Override
-    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws IncorrectUserRoleException, ManagerExternalStoreItemException {
+    public Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws IncorrectUserRoleException, ManagerExternalStoreItemException, ManagerItemPriceMismatchException {
         try {
             this.validateUser(managerID, UserRole.M);
             this.validateItem(managerID, itemID);
+            return this.store.addItem(managerID, itemID, itemName, quantity, price);
+        }  catch (ManagerItemPriceMismatchException e) {
+            this.logger.info("Manager with ID: " + managerID + " tried to add an item with ID : " + itemID + "," +
+                    " but the price does not match.");
+            throw new ManagerItemPriceMismatchException(e.getMessage());
         } catch(IncorrectUserRoleException e) {
             Item item = new Item(itemID, itemName, quantity, price);
             this.logger.severe("Permission alert! Customer with ID: " + managerID +
@@ -57,15 +62,26 @@ public class StoreProxy implements ICommunicate {
                     "was trying to add an item " + itemID + " which belongs to a different store.");
             throw new ManagerExternalStoreItemException(e.getMessage());
         }
-
-        return this.store.addItem(managerID, itemID, itemName, quantity, price);
     }
 
     @Override
-    public Item removeItem(String managerID, String itemID, int quantity) throws IncorrectUserRoleException, ManagerExternalStoreItemException {
+    public Item removeItem(String managerID, String itemID, int quantity) throws IncorrectUserRoleException, ManagerExternalStoreItemException,
+            ManagerRemoveBeyondQuantityException, ManagerRemoveNonExistingItemException
+    {
         try {
             this.validateUser(managerID, UserRole.M);
             this.validateItem(managerID, itemID);
+            return this.store.removeItem(managerID, itemID, quantity);
+        } catch(ManagerRemoveNonExistingItemException e) {
+            String msg = quantity == -1 ? "completely remove" : "remove " + quantity + " units from";
+            this.logger.info("Manager with ID: " + managerID + " was trying to " +
+                    "" + msg + " an item with ID: " + itemID + "" +
+                    ", but such an item does not exists in a store.");
+            throw new ManagerRemoveNonExistingItemException(e.getMessage());
+        } catch (ManagerRemoveBeyondQuantityException e) {
+            this.logger.info("Manager with ID: " + managerID + " was trying to remove more quantity than exists in a store " +
+                    "for the item with ID: " + itemID);
+            throw new ManagerRemoveBeyondQuantityException(e.getMessage());
         } catch(IncorrectUserRoleException e) {
             String msg = quantity == -1 ? "completely remove" : "remove " + quantity + " units from";
             this.logger.severe("Permission alert! Customer with ID: " + managerID +
@@ -76,7 +92,6 @@ public class StoreProxy implements ICommunicate {
                     "was trying to remove item " + itemID + " which belongs to a different store.");
             throw new ManagerExternalStoreItemException(e.getMessage());
         }
-        return this.store.removeItem(managerID, itemID, quantity);
     }
 
     @Override

@@ -15,8 +15,8 @@ import java.util.List;
  */
 public interface ICommunicate extends Remote, ICustomer, IManager {
     // Manager roles
-    Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException;
-    Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException;
+    Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException, ManagerItemPriceMismatchException;
+    Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException, ManagerRemoveBeyondQuantityException, ManagerRemoveNonExistingItemException;
     List<Item> listItemAvailability(String managerID) throws RemoteException, NotBoundException, IncorrectUserRoleException;
 
     // Customer roles

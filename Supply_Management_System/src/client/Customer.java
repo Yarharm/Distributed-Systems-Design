@@ -65,7 +65,7 @@ public class Customer implements ICustomer {
             items.forEach(serialItem -> sb.append(serialItem).append(" "));
             String msg = items.size() == 0 ? " no available items " :  " the following list of items: " + sb.toString();
             this.logger.info("Customer with ID: " + customerID + " received " + msg + "" +
-                    "based on the item with " + itemName + " name.");
+                    "based on the item with name " + itemName);
         } catch (IncorrectUserRoleException e) {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + " tried to find items based on " +
                     "the " + itemName + " name.");

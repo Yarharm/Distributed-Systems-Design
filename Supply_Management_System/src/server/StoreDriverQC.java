@@ -9,7 +9,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StoreMaster {
+public class StoreDriverQC {
     public static void main(String[] args) {
         try {
             Map<String, Integer> portsConfig = new HashMap();
@@ -18,13 +18,11 @@ public class StoreMaster {
             portsConfig.put("BC", 8889);
 
             Registry registry = LocateRegistry.getRegistry();
-            for(Map.Entry<String, Integer> store : portsConfig.entrySet()) {
-                String locationName = store.getKey();
-                StoreProxy storeProxy = new StoreProxy(locationName, portsConfig);
-                ICommunicate stub = (ICommunicate) UnicastRemoteObject.exportObject(storeProxy, 0);
-                registry.rebind(locationName, stub);
-                storeProxy.initializeStore();
-            }
+            String locationName = "QC";
+            StoreProxy storeProxy = new StoreProxy(locationName, portsConfig);
+            ICommunicate stub = (ICommunicate) UnicastRemoteObject.exportObject(storeProxy, 0);
+            registry.rebind(locationName, stub);
+            storeProxy.initializeStore();
         }
         catch(IOException e) {
             System.err.println("Could not setup logger on a server");
