@@ -14,12 +14,13 @@ public class UserDriver {
     private static final Set<String> locations = new HashSet<>();
     private static final DateFormat sourceFormat = new SimpleDateFormat("ddMMyyyy");
 
-    public static void main(String args[]) {
+    public static void main(String[] args) {
         locations.add("QC");
         locations.add("BC");
         locations.add("ON");
 
         try {
+            prepopulate();
             while(true) {
                 Scanner myObj = new Scanner(System.in);
                 System.out.println("Choose user client:");
@@ -172,5 +173,14 @@ public class UserDriver {
             return false;
         }
         return true;
+    }
+
+    private static void prepopulate() throws IOException{
+        List<String> managers = new ArrayList<>(Arrays.asList("QCM9572", "BCM4399", "ONM2936", "QCM3492", "BCM5811", "ONM4325"));
+        List<String> customers = new ArrayList<>(Arrays.asList("QCU9572", "BCU4399", "ONU2936", "QCU3492", "BCU5811", "ONU4325"));
+
+        for(String managerID : managers) { getManager(managerID); }
+        for(String customerID : customers) { getCustomer(customerID); }
+
     }
 }
