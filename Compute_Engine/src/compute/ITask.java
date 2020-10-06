@@ -1,5 +1,5 @@
 package compute;
 
-public idl_interface ITask<T> {
+public interface ITask<T> {
     T execute();
 }

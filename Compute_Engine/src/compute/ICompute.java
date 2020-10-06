@@ -8,6 +8,6 @@ import java.rmi.RemoteException;
     Can be invoked by other JVM
     RemoteException is checked: Catch or Throws
  */
-public idl_interface ICompute extends Remote {
+public interface ICompute extends Remote {
     <T> T executeTask(ITask<T> t) throws RemoteException; // Comm failure or protocol error
 }

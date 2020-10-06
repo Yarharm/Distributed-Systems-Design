@@ -13,7 +13,7 @@ import java.util.List;
     Can be invoked by other JVM
     RemoteException is checked: Catch or Throws
  */
-public idl_interface ICommunicate extends Remote, ICustomer, IManager {
+public interface ICommunicate extends Remote, ICustomer, IManager {
     // Manager roles
     Item addItem(String managerID, String itemID, String itemName, int quantity, int price) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException, ManagerItemPriceMismatchException;
     Item removeItem(String managerID, String itemID, int quantity) throws RemoteException, IncorrectUserRoleException, NotBoundException, ManagerExternalStoreItemException, ManagerRemoveBeyondQuantityException, ManagerRemoveNonExistingItemException;
