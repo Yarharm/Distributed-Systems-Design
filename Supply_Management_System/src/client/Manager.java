@@ -7,7 +7,9 @@ import exceptions.*;
 import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
@@ -87,10 +89,10 @@ public class Manager implements IManager {
     }
 
     public void setupLogger() throws IOException {
-        String logFile = this.managerID + ".log";
-        Handler fileHandler  = new FileHandler("/Users/yaroslav/school/423/Distributed-Systems-Design" +
-                    "/Supply_Management_System/logs/clients/managers/" + logFile);
-        // this.logger.setUseParentHandlers(false);
+        long creationTime = System.currentTimeMillis();
+        String logFile = "/Users/yaroslav/school/423/Distributed-Systems-Design" +
+                "/Supply_Management_System/logs/clients/managers/" + this.managerID + "_" + creationTime + ".log";
+        Handler fileHandler =  new FileHandler(logFile, true);
         this.logger.addHandler(fileHandler);
     }
 }

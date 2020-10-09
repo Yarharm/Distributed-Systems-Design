@@ -3,6 +3,7 @@ package client;
 import communicate.ICustomer;
 import exceptions.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -63,7 +64,7 @@ public class Customer implements ICustomer {
             items = this.stub.findItem(customerID, itemName);
             StringBuilder sb = new StringBuilder();
             items.forEach(serialItem -> sb.append(serialItem).append(" "));
-            String msg = items.size() == 0 ? " no available items " :  " the following list of items: " + sb.toString();
+            String msg = items.isEmpty() ? " no available items " :  " the following list of items: " + sb.toString();
             this.logger.info("Customer with ID: " + customerID + " received " + msg + "" +
                     "based on the item with name " + itemName);
         } catch (IncorrectUserRoleException e) {
@@ -96,10 +97,10 @@ public class Customer implements ICustomer {
     }
 
     public void setupLogger() throws IOException {
-        String logFile = this.customerID + ".log";
-        Handler fileHandler  = new FileHandler("/Users/yaroslav/school/423/Distributed-Systems-Design" +
-                "/Supply_Management_System/logs/clients/customers/" + logFile);
-        // this.logger.setUseParentHandlers(false);
+        long creationTime = System.currentTimeMillis();
+        String logFile = "/Users/yaroslav/school/423/Distributed-Systems-Design" +
+                "/Supply_Management_System/logs/clients/customers/" + this.customerID + "_" + creationTime + ".log";
+        Handler fileHandler = new FileHandler(logFile, true);
         this.logger.addHandler(fileHandler);
     }
 

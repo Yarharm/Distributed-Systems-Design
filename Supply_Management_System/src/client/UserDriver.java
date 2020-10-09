@@ -1,16 +1,21 @@
 package client;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.rmi.NotBoundException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class UserDriver {
-    private static final Map<String, Customer> customers = new HashMap<>();
-    private static final Map<String, Manager> managers = new HashMap<>();
+    private static final ConcurrentHashMap<String, Customer> customers = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Manager> managers = new ConcurrentHashMap<>();
     private static final Set<String> locations = new HashSet<>();
     private static final DateFormat sourceFormat = new SimpleDateFormat("ddMMyyyy");
 
@@ -61,7 +66,7 @@ public class UserDriver {
             if(operationChoice.equals("1")) {
                 System.out.print("Operation (managerID, itemID, itemName, quantity, price): ");
                 String[] args = myObj.nextLine().split(" ");
-                if(!validateUserID(args[0]) || !validateItemID(args[1])) {
+                if(!validateUserID(args[0]) || !validateItemID(args[1]) || args.length != 5) {
                     System.out.println("INVALID INPUT");
                     continue;
                 }
@@ -70,7 +75,7 @@ public class UserDriver {
             } else if(operationChoice.equals("2")) {
                 System.out.print("Operation (managerID, itemID, quantity): ");
                 String[] args = myObj.nextLine().split(" ");
-                if(!validateUserID(args[0]) || !validateItemID(args[1])) {
+                if(!validateUserID(args[0]) || !validateItemID(args[1]) || args.length != 3) {
                     System.out.println("INVALID INPUT");
                     continue;
                 }
@@ -79,7 +84,7 @@ public class UserDriver {
             } else if(operationChoice.equals("3")) {
                 System.out.print("Operation (managerID): ");
                 String[] args = myObj.nextLine().split(" ");
-                if(!validateUserID(args[0])) {
+                if(!validateUserID(args[0]) || args.length != 1) {
                     System.out.println("INVALID INPUT");
                     continue;
                 }
@@ -105,7 +110,7 @@ public class UserDriver {
             if(operationChoice.equals("1")) {
                 System.out.print("Operation (customerID, itemID, dateOfPurchase(ddmmyyyy): ");
                 String[] args = myObj.nextLine().split(" ");
-                if(!validateUserID(args[0]) || !validateItemID(args[1])) {
+                if(!validateUserID(args[0]) || !validateItemID(args[1]) || args.length != 3) {
                     System.out.println("INVALID INPUT");
                     continue;
                 }
@@ -114,7 +119,7 @@ public class UserDriver {
             } else if(operationChoice.equals("2")) {
                 System.out.print("Operation (customerID, itemName): ");
                 String[] args = myObj.nextLine().split(" ");
-                if(!validateUserID(args[0])) {
+                if(!validateUserID(args[0]) || args.length != 2) {
                     System.out.println("INVALID INPUT");
                     continue;
                 }
@@ -123,7 +128,7 @@ public class UserDriver {
             } else if(operationChoice.equals("3")) {
                 System.out.print("Operation (customerID, itemID, dateOfReturn(ddmmyyyy)): ");
                 String[] args = myObj.nextLine().split(" ");
-                if(!validateUserID(args[0]) || !validateItemID(args[1])) {
+                if(!validateUserID(args[0]) || !validateItemID(args[1]) || args.length != 3) {
                     System.out.println("INVALID INPUT");
                     continue;
                 }
@@ -158,7 +163,10 @@ public class UserDriver {
     }
 
     private static boolean validateUserID(String userID) {
-        if(userID.length() != 7 || !locations.contains(userID.substring(0, 2))) {
+        String regex = "\\d+";
+        String location = userID.substring(0, 2);
+        String numbers = userID.substring(3);
+        if(userID.length() != 7 || !locations.contains(location) || !numbers.matches(regex)) {
             return false;
         }
         char role = userID.charAt(2);
@@ -169,18 +177,41 @@ public class UserDriver {
     }
 
     private static boolean validateItemID(String itemID) {
-        if(itemID.length() != 6 || !locations.contains(itemID.substring(0, 2))) {
+        String regex = "\\d+";
+        String location = itemID.substring(0, 2);
+        String numbers = itemID.substring(2);
+        if(itemID.length() != 6 || !locations.contains(location) || !numbers.matches(regex)) {
             return false;
         }
         return true;
     }
 
     private static void prepopulate() throws IOException{
-        List<String> managers = new ArrayList<>(Arrays.asList("QCM9572", "BCM4399", "ONM2936", "QCM3492", "BCM5811", "ONM4325"));
-        List<String> customers = new ArrayList<>(Arrays.asList("QCU9572", "BCU4399", "ONU2936", "QCU3492", "BCU5811", "ONU4325"));
+        List<String> managers = new ArrayList<>(Arrays.asList(
+                "QCM1111", "QCM2222", "QCM3333",
+                "BCM1111", "BCM2222", "BCM3333",
+                "ONM1111", "ONM2222", "ONM3333")
+        );
+        List<String> customers = new ArrayList<>(Arrays.asList(
+                "QCU1111", "QCU2222", "QCU3333",
+                "BCU1111", "BCU2222", "BCU3333",
+                "ONU1111", "ONU2222", "ONU3333")
+        );
 
-        for(String managerID : managers) { getManager(managerID); }
-        for(String customerID : customers) { getCustomer(customerID); }
+        String baseDir = "/Users/yaroslav/school/423/Distributed-Systems-Design/Supply_Management_System/logs/clients/";
+        Path customerDir = Paths.get(baseDir + "customers");
+        Path managerDir = Paths.get(baseDir + "managers");
+        if(Files.isDirectory(customerDir) && !Files.list(customerDir).findAny().isPresent()) {
+            for(String customerID : customers) { getCustomer(customerID); }
+        }
+        if(Files.isDirectory(managerDir) && !Files.list(managerDir).findAny().isPresent()) {
+            for(String managerID : managers) { getManager(managerID); }
+        }
+    }
 
+    private static boolean isDirEmpty(final Path directory) throws IOException {
+        try(DirectoryStream<Path> dirStream = Files.newDirectoryStream(directory)) {
+            return !dirStream.iterator().hasNext();
+        }
     }
 }

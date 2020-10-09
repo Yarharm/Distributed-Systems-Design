@@ -272,7 +272,6 @@ public class Store implements ICommunicate {
         ExecutorService executor = Executors.newWorkStealingPool();
         try {
             collectedItems.addAll(this.listAllItemsByNameSync(itemName));
-
             // Generate callables for other stores
             List<StoreClientUDP> storeCallables = this.generetaAllStoreCallables(Arrays.asList(FIND_ITEM, this.locationName, itemName));
 
@@ -292,7 +291,9 @@ public class Store implements ICommunicate {
                     .collect(Collectors.toList()));
             executor.shutdown();
             executor.awaitTermination(60, TimeUnit.SECONDS);
-
+            if(collectedItems.get(0).isEmpty()){
+                collectedItems.clear();
+            }
             this.logger.info("Customer with ID: " + customerID + " requested to find all items based on " + itemName + " name." +
                     " Fetched the list of the following items from all available stores: " + collectedItems);
         } catch (InterruptedException e) {
@@ -351,7 +352,6 @@ public class Store implements ICommunicate {
                 Future<List<String>> future = executor.submit(new StoreClientUDP(Arrays.asList(RETURN_ITEM, this.locationName, itemID),
                         this.portsConfig.get(store)));
                 productPrice = Integer.parseInt(future.get().get(0));
-                System.out.println("PRCIE RECEIVED FROM OTHER STORE " + productPrice);
                 executor.shutdown();
                 this.externallyPurchasedItems.get(itemID).remove(customerID);
                 this.customersWithExternalPurchases.get(customerID).remove(store);
@@ -420,6 +420,7 @@ public class Store implements ICommunicate {
         try {
             this.itemsWaitlist.putIfAbsent(itemID, new LinkedList<>());
             this.itemsWaitlist.get(itemID).addLast(customerID);
+            this.automaticallyAssignItem(itemID);
         } finally {
             this.lock.writeLock().unlock();
         }

@@ -198,7 +198,7 @@ public class StoreProxy implements ICommunicate {
     private void setupLogger() throws IOException {
         String logFile = this.locationName + ".log";
         Handler fileHandler  = new FileHandler("/Users/yaroslav/school/423/Distributed-Systems-Design/" +
-                "Supply_Management_System/logs/stores/" + logFile);
+                "Supply_Management_System/logs/stores/" + logFile, true);
         this.logger.setUseParentHandlers(false);
         this.logger.addHandler(fileHandler);
     }

@@ -13,7 +13,7 @@ rmiregistry &
 ```
 * Server
 ```
-java -cp ./bin:./bin/communicate.jar -Djava.rmi.server.codebase=file:/Users/yaroslav/school/423/Distributed-Systems-Design/Supply_Management_System/bin/communicate.jar -Djava.rmi.server.hostname=127.0.0.1 -Djava.security.policy=./security/server.policy server.StoreMaster
+java -cp ./bin:./bin/communicate.jar -Djava.rmi.server.codebase=file:/Users/yaroslav/school/423/Distributed-Systems-Design/Supply_Management_System/bin/communicate.jar -Djava.rmi.server.hostname=127.0.0.1 -Djava.security.policy=./security/server.policy server.StoreDriver
 ```
 * Client
 ```
