@@ -1,34 +1,29 @@
 package client;
 
-import communicate.ICustomer;
-import exceptions.*;
+import communicate.ICommunicatePackage.*;
+import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.CosNaming.NamingContextPackage.CannotProceed;
+import org.omg.CosNaming.NamingContextPackage.NotFound;
 
-import java.io.File;
 import java.io.IOException;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.Scanner;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
 
-public class Customer implements ICustomer {
+public class Customer {
     private final String customerID;
     private final StubFacade stub;
     private final Logger logger;
 
-    public Customer(String customerID, String locationName) {
+    public Customer(String customerID, String locationName, String[] args) {
         super();
         this.customerID = customerID;
-        this.stub = new StubFacade(locationName);
+        this.stub = new StubFacade(locationName, args);
         this.logger = Logger.getLogger(customerID);
     }
 
-    @Override
-    public void purchaseItem(String customerID, String itemID, Date dateOfPurchase) throws RemoteException, NotBoundException {
+    public void purchaseItem(String customerID, String itemID, String dateOfPurchase) throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         try {
             this.stub.purchaseItem(customerID, itemID, dateOfPurchase);
             this.logger.info("Customer with ID: " + customerID + " successfully purchased an item with ID: " + itemID + "" +
@@ -49,7 +44,7 @@ public class Customer implements ICustomer {
         } catch(ExternalStorePurchaseLimitException e) {
             this.logger.info("Customer with ID: " + customerID + " attempted to purchase an item with" +
                     " ID: " + itemID + " on " + dateOfPurchase + ", but he/she already made purchase from " +
-                    "" + e.getMessage() + " store.");
+                    "" + itemID.substring(0, 2) + " store.");
         }
         catch(IncorrectUserRoleException e) {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + "" +
@@ -57,23 +52,19 @@ public class Customer implements ICustomer {
         }
     }
 
-    @Override
-    public List<String> findItem(String customerID, String itemName) throws RemoteException, NotBoundException {
-        List<String> items = new ArrayList<>();
+    public void findItem(String customerID, String itemName) throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         try {
-            items = this.stub.findItem(customerID, itemName);
+            String items = this.stub.findItem(customerID, itemName);
             String msg = items.isEmpty() ? " no available items " :  " the following list of items: " + items;
             this.logger.info("Customer with ID: " + customerID + " received " + msg + "" +
-                    "based on the item with name " + itemName);
+                    " based on the item with name " + itemName);
         } catch (IncorrectUserRoleException e) {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + " tried to find items based on " +
                     "the " + itemName + " name.");
         }
-        return items;
     }
 
-    @Override
-    public void returnItem(String customerID, String itemID, Date dateOfReturn) throws RemoteException, NotBoundException {
+    public void returnItem(String customerID, String itemID, String dateOfReturn) throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         try {
             this.stub.returnItem(customerID, itemID, dateOfReturn);
             this.logger.info("Customer with ID: " + customerID + " successfully returned an item with ID: " + itemID + "" +
@@ -91,13 +82,12 @@ public class Customer implements ICustomer {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + " was trying return an item" +
                     " with ID: " + itemID);
         }
-
     }
 
     public void setupLogger() throws IOException {
         long creationTime = System.currentTimeMillis();
         String logFile = "/Users/yaroslav/school/423/Distributed-Systems-Design" +
-                "/Supply_Management_System/logs/clients/customers/" + this.customerID + "_" + creationTime + ".log";
+                "/CORBA_Supply_Management_System/logs/clients/customers/" + this.customerID + "_" + creationTime + ".log";
         Handler fileHandler = new FileHandler(logFile, true);
         this.logger.addHandler(fileHandler);
     }

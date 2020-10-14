@@ -1,14 +1,14 @@
 package client;
 
+import org.omg.CORBA.ORBPackage.InvalidName;
+import org.omg.CosNaming.NamingContextPackage.CannotProceed;
+import org.omg.CosNaming.NamingContextPackage.NotFound;
+
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.rmi.NotBoundException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,13 +17,13 @@ public class UserDriver {
     private static final ConcurrentHashMap<String, Customer> customers = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<String, Manager> managers = new ConcurrentHashMap<>();
     private static final Set<String> locations = new HashSet<>();
-    private static DateFormat sourceFormat = new SimpleDateFormat("ddMMyyyy");
+    private static String[] arguments;
 
     public static void main(String[] args) {
         locations.add("QC");
         locations.add("BC");
         locations.add("ON");
-
+        arguments = args;
         try {
             prepopulate();
             while(true) {
@@ -43,18 +43,13 @@ public class UserDriver {
                     System.exit(1);
                 }
             }
-        } catch(IOException e) {
-            System.err.println("Could not setup user logger");
-            e.printStackTrace();
-        } catch(NotBoundException e) {
-            System.err.println("Could not lookup store in registry");
         } catch (Exception e) {
             System.err.println("User exception:");
             e.printStackTrace();
         }
     }
 
-    private static void runManagerClient() throws IOException, NotBoundException, NumberFormatException {
+    private static void runManagerClient() throws IOException, NumberFormatException, InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         while(true) {
             Scanner myObj = new Scanner(System.in);
             System.out.println("1.addItem");
@@ -98,7 +93,7 @@ public class UserDriver {
 
     }
 
-    private static void runCustomerClient() throws ParseException, IOException, NotBoundException {
+    private static void runCustomerClient() throws IOException, InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         while(true) {
             Scanner myObj = new Scanner(System.in);
             System.out.println("1.purchaseItem");
@@ -115,7 +110,7 @@ public class UserDriver {
                     continue;
                 }
                 Customer customer = getCustomer(args[0]);
-                customer.purchaseItem(args[0], args[1], sourceFormat.parse(args[2]));
+                customer.purchaseItem(args[0], args[1], args[2]);
             } else if(operationChoice.equals("2")) {
                 System.out.print("Operation (customerID, itemName): ");
                 String[] args = myObj.nextLine().split(" ");
@@ -133,7 +128,7 @@ public class UserDriver {
                     continue;
                 }
                 Customer customer = getCustomer(args[0]);
-                customer.returnItem(args[0], args[1], sourceFormat.parse(args[2]));
+                customer.returnItem(args[0], args[1], args[2]);
             } else if(operationChoice.equals("4")) {
                 break;
             }
@@ -144,7 +139,7 @@ public class UserDriver {
     public static Customer getCustomer(String customerID) throws IOException {
         Customer customer = customers.get(customerID);
         if(customer == null) {
-            customer = new Customer(customerID, customerID.substring(0, 2));
+            customer = new Customer(customerID, customerID.substring(0, 2), arguments);
             customer.setupLogger();
             customers.put(customerID, customer);
         }
@@ -155,7 +150,7 @@ public class UserDriver {
     public static Manager getManager(String managerID) throws IOException {
         Manager manager = managers.get(managerID);
         if(manager == null) {
-            manager = new Manager(managerID, managerID.substring(0, 2));
+            manager = new Manager(managerID, managerID.substring(0, 2), arguments);
             manager.setupLogger();
             managers.put(managerID, manager);
         }
