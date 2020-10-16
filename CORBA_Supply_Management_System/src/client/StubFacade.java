@@ -62,6 +62,14 @@ public class StubFacade {
         store.addCustomerToWaitQueue(customerID, itemID);
     }
 
+    public void exchangeItem(String customerID, String newItemID, String oldItemID, String dateOfExchange) throws ReturnPolicyException,
+            ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException,
+            InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound, IncorrectUserRoleException
+    {
+        ICommunicate store = this.fetchStore();
+        store.exchangeItem(customerID, newItemID, oldItemID, dateOfExchange);
+    }
+
     public ICommunicate fetchStore() throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         // get the root naming context
         org.omg.CORBA.Object objRef =

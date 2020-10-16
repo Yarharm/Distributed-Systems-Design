@@ -52,6 +52,7 @@ public class UserDriver {
     private static void runManagerClient() throws IOException, NumberFormatException, InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         while(true) {
             Scanner myObj = new Scanner(System.in);
+            System.out.println("Available operations:");
             System.out.println("1.addItem");
             System.out.println("2.removeItem");
             System.out.println("3.listItemAvailability");
@@ -96,10 +97,12 @@ public class UserDriver {
     private static void runCustomerClient() throws IOException, InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         while(true) {
             Scanner myObj = new Scanner(System.in);
+            System.out.println("Available operations:");
             System.out.println("1.purchaseItem");
             System.out.println("2.findItem");
             System.out.println("3.returnItem");
-            System.out.println("4.Back to the client menu");
+            System.out.println("4.exchangeItem");
+            System.out.println("5.Back to the client menu");
             String operationChoice = myObj.nextLine();
             System.out.println();
             if(operationChoice.equals("1")) {
@@ -130,6 +133,15 @@ public class UserDriver {
                 Customer customer = getCustomer(args[0]);
                 customer.returnItem(args[0], args[1], args[2]);
             } else if(operationChoice.equals("4")) {
+                System.out.print("Operation (customerID, newItemID, oldItemID, dateOfExchange(ddmmyyyy)): ");
+                String[] args = myObj.nextLine().split(" ");
+                if(!validateUserID(args[0]) || !validateItemID(args[1]) || !validateItemID(args[2]) || args.length != 4) {
+                    System.out.println("INVALID INPUT");
+                    continue;
+                }
+                Customer customer = getCustomer(args[0]);
+                customer.exchangeItem(args[0], args[1], args[2], args[3]);
+            }  else if(operationChoice.equals("5")) {
                 break;
             }
             System.out.println();
