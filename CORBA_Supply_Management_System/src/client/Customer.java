@@ -84,6 +84,38 @@ public class Customer {
         }
     }
 
+    public void exchangeItem(String customerID, String newItemID, String oldItemID, String dateOfExchange) throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound
+    {
+        try {
+            this.stub.exchangeItem(customerID, newItemID, oldItemID, dateOfExchange);
+            this.logger.info("Customer with ID: " + customerID + " has successfully exchanged an item with ID: " + oldItemID + "" +
+                    " for an item with ID: " + newItemID + " on " + dateOfExchange);
+        }  catch (ReturnPolicyException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to exchange an item with ID: " + oldItemID + "" +
+                    ", for a new item with ID: " + newItemID + ", but it is beyond the return policy.");
+        } catch (ItemWasNeverPurchasedException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to exchange an item with ID: " + oldItemID + "" +
+                    " during exchange operation, but such an item was never purchased from the store.");
+        } catch (CustomerNeverPurchasedItemException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + oldItemID + "" +
+                    " during exchange operation, but the customer never purchased such an item.");
+        } catch(ExternalStorePurchaseLimitException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to exchange an item with" +
+                    " ID: " + oldItemID + " on " + dateOfExchange + " for an item with ID: " + newItemID + ", but he/she already made purchase from " +
+                    "" + newItemID.substring(0, 2) + " store.");
+        } catch(ItemOutOfStockException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to exchange an item with ID:" +
+                    " " + oldItemID + " on " + dateOfExchange + " for an item with ID: " + newItemID + ", but such an item is out of stock.");
+        } catch(NotEnoughFundsException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to exchange an item with" +
+                    " ID: " + oldItemID + " on " + dateOfExchange + " for an item with ID: " + newItemID + ", but does not have enough funds.");
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Manager with ID: " + customerID + " was trying to exchange an item" +
+                    " with ID: " + oldItemID + " to a new item with ID: " + newItemID + " on " + dateOfExchange);
+        }
+
+    }
+
     public void setupLogger() throws IOException {
         long creationTime = System.currentTimeMillis();
         String logFile = "/Users/yaroslav/school/423/Distributed-Systems-Design" +
@@ -94,7 +126,7 @@ public class Customer {
 
     private boolean addToQueuePrompt() {
         Scanner myObj = new Scanner(System.in);
-        System.out.println("Item out of stock. Would you like to be added to the queue for this item?(Y/N)");
+        System.out.println("item out of stock. Would you like to be added to the queue for this item?(Y/N)");
 
         String userInput = myObj.nextLine().toLowerCase();
         return userInput.equals("y");

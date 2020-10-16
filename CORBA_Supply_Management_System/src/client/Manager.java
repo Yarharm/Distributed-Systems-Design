@@ -29,8 +29,8 @@ public class Manager {
         String item = new Item(itemID, itemName, quantity, price).toString();
         try {
             item = this.stub.addItem(managerID, itemID, itemName, quantity, price);
-            this.logger.info("Manager with ID: " + this.managerID + " added an Item to " + this.locationName + " store." +
-                    " Item information: " + item.toString());
+            this.logger.info("Manager with ID: " + this.managerID + " added an item to " + this.locationName + " store." +
+                    " item information: " + item.toString());
         } catch(ManagerItemPriceMismatchException e) {
             this.logger.info("Manager with ID: " + managerID + " was trying to add an item with ID: " + itemID + "," +
                     " but the price does not match.");
@@ -48,7 +48,7 @@ public class Manager {
         try {
             String item = this.stub.removeItem(managerID, itemID, quantity);
             this.logger.info(this.managerID + " successfully removed " + msg + "an item with ID: " + itemID + ". " +
-                    "Item info: " + item);
+                    "item info: " + item);
         } catch(ManagerRemoveNonExistingItemException e) {
             this.logger.severe("Manager with ID: " + managerID + " was trying to remove " + msg + "an item with ID: " + itemID +
                     "but such an item does not exist.");

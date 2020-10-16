@@ -2,7 +2,6 @@ package server;
 
 import communicate.*;
 import communicate.ICommunicatePackage.*;
-import org.omg.CORBA.*;
 
 import java.io.IOException;
 import java.util.Map;
@@ -121,7 +120,7 @@ public class StoreProxy extends ICommunicatePOA {
         } catch(ExternalStorePurchaseLimitException e) {
             this.logger.info("Customer with ID: " + customerID + " attempted to purchase an item with" +
                     " ID: " + itemID + " on " + dateOfPurchase + ", but he/she already made purchase from " +
-                    "" + e.getMessage() + " store.");
+                    "" + itemID.substring(0, 2) + " store.");
             throw new ExternalStorePurchaseLimitException(e.getMessage());
         } catch (IncorrectUserRoleException e) {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + "" +
@@ -171,6 +170,45 @@ public class StoreProxy extends ICommunicatePOA {
     @Override
     public void addCustomerToWaitQueue(String customerID, String itemID) {
         this.store.addCustomerToWaitQueue(customerID, itemID);
+    }
+
+    @Override
+    public void exchangeItem(String customerID, String newItemID, String oldItemID, String dateOfExchange) throws ReturnPolicyException,
+            ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException, IncorrectUserRoleException {
+        try {
+            this.validateUser(customerID, UserRole.U);
+            this.store.exchangeItem(customerID, newItemID, oldItemID, dateOfExchange);
+        }  catch (ReturnPolicyException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to exchange an item with ID: " + oldItemID + "" +
+                    " , for a new item with ID: " + newItemID + ", but it is beyond the return policy.");
+            throw new ReturnPolicyException(e.getMessage());
+        } catch (ItemWasNeverPurchasedException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to exchange an item with ID: " + oldItemID + "" +
+                    " , but such an item was never purchased from the store.");
+            throw new ItemWasNeverPurchasedException(e.getMessage());
+        } catch (CustomerNeverPurchasedItemException e) {
+            this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + oldItemID + "" +
+                    " , but the customer never purchased such an item.");
+            throw new CustomerNeverPurchasedItemException(e.getMessage());
+        } catch(ExternalStorePurchaseLimitException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to exchange an item with" +
+                    " ID: " + oldItemID + " on " + dateOfExchange + " for an item with ID: " + newItemID + ", but he/she already made purchase from " +
+                    "" + newItemID.substring(0, 2) + " store.");
+            throw new ExternalStorePurchaseLimitException(e.getMessage());
+        } catch(ItemOutOfStockException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to exchange an item with ID:" +
+                    " " + oldItemID + " on " + dateOfExchange + " for an item with ID: " + newItemID + ", but such an item is out of stock.");
+            throw new ItemOutOfStockException(e.getMessage());
+        } catch(NotEnoughFundsException e) {
+            this.logger.info("Customer with ID: " + customerID + " attempted to exchange an item with" +
+                    " ID: " + oldItemID + " on " + dateOfExchange + " for an item with ID: " + newItemID + ", but does not have enough funds.");
+            throw new NotEnoughFundsException(e.getMessage());
+        } catch (IncorrectUserRoleException e) {
+            this.logger.severe("Permission alert! Manager with ID: " + customerID + " was trying to exchange an item" +
+                    " with ID: " + oldItemID + " to a new item with ID: " + newItemID + " on " + dateOfExchange);
+            throw new IncorrectUserRoleException(e.getMessage());
+        }
+
     }
 
     public void initializeStore() throws IOException {

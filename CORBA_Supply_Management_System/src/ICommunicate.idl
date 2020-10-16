@@ -23,5 +23,7 @@ module communicate
     void returnItem(in wstring customerID, in wstring itemID, in wstring dateOfReturn) raises(IncorrectUserRoleException, ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ReturnPolicyException);
 
     void addCustomerToWaitQueue(in wstring customerID, in wstring itemID);
+
+    void exchangeItem(in wstring customerID, in wstring newItemID, in wstring oldItemID, in wstring dateOfExchange) raises(IncorrectUserRoleException, ReturnPolicyException, ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException);
   };
 };
