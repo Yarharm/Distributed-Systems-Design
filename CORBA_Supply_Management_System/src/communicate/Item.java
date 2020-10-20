@@ -26,13 +26,13 @@ public class Item implements Serializable {
         return this.itemID + " " + this.quantity + " " + this.price;
     }
 
-    public void setQuantity(int quantity) {
+    public synchronized void setQuantity(int quantity) {
         this.quantity = quantity;
     }
+    public synchronized void removeSingleQuantity() { this.quantity--; }
     public String getItemID() {
         return this.itemID;
     }
-    public void removeSingleQuantity() { this.quantity--; }
     public String getItemName() {
         return this.itemName;
     }

@@ -11,8 +11,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -144,15 +142,14 @@ public class Store extends ICommunicatePOA {
     private static final String AUTOMATIC_STORE_MANAGER = "AUTOMATIC_STORE_MANAGER";
     private final String locationName;
     private final ConcurrentHashMap<String, Item> items;
-    private final ConcurrentHashMap<String, Set<String>> itemsByName;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, String>> itemsByName;
     private final ConcurrentHashMap<String, Integer> customers;
-    private final ConcurrentHashMap<String, Deque<String>> itemsWaitlist;
-    private final ConcurrentHashMap<String, Map<String, TreeSet<Long>>> locallyPurchasedItems;
-    private final ConcurrentHashMap<String, Map<String, Long>> externallyPurchasedItems;
-    private final ConcurrentHashMap<String, Set<String>> customersWithExternalPurchases;
+    private final ConcurrentHashMap<String, ConcurrentLinkedDeque<String>> itemsWaitlist;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, TreeSet<Long>>> locallyPurchasedItems;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, Long>> externallyPurchasedItems;
+    private final ConcurrentHashMap<String, ConcurrentHashMap<String, String>> customersWithExternalPurchases;
     private final ConcurrentHashMap<String, Item> itemHistory;
     private final Logger logger;
-    private final ReadWriteLock lock;
     private final Map<String, Integer> portsConfig;
 
     public Store(String locationName, Logger logger, Map<String, Integer> portsConfig) {
@@ -167,41 +164,34 @@ public class Store extends ICommunicatePOA {
         this.customersWithExternalPurchases = new ConcurrentHashMap<>();
         this.itemHistory = new ConcurrentHashMap<>();
         this.logger = logger;
-        this.lock = new ReentrantReadWriteLock();
         this.portsConfig = new HashMap<>(portsConfig);
     }
 
     @Override
     public String addItem(String managerID, String itemID, String itemName, int quantity, int price) throws ManagerItemPriceMismatchException {
-        this.lock.writeLock().lock();
         Item item = new Item(itemID, itemName, quantity, price);
-        try {
-            String message =  "added a new item.";
-            if(this.items.containsKey(itemID)) {
-                if(this.items.get(itemID).getPrice() != price && !managerID.equals(AUTOMATIC_STORE_MANAGER)) {
-                    throw new ManagerItemPriceMismatchException("Add item unsuccessful. communicate.Item price does not match");
-                }
-                int oldQuantity = this.items.get(itemID).getQuantity();
-                item.setQuantity(quantity + oldQuantity);
-                message = "updated an existing item.";
+        String message =  "added a new item.";
+        if(this.items.containsKey(itemID)) {
+            if(this.items.get(itemID).getPrice() != price && !managerID.equals(AUTOMATIC_STORE_MANAGER)) {
+                throw new ManagerItemPriceMismatchException("Add item unsuccessful. communicate.Item price does not match");
             }
-            if(!managerID.equals(AUTOMATIC_STORE_MANAGER)) {
-                this.logger.info("Manager with ID: " + managerID + " " + message + " communicate.Item information " + item.toString());
-            }
-            this.items.put(itemID, item);
-            this.itemsByName.putIfAbsent(itemName, new HashSet<>());
-            this.itemsByName.get(itemName).add(itemID);
-            this.itemHistory.put(itemID, item);
-            this.automaticallyAssignItem(itemID);
-        } finally {
-            this.lock.writeLock().unlock();
+            int oldQuantity = this.items.get(itemID).getQuantity();
+            item.setQuantity(quantity + oldQuantity);
+            message = "updated an existing item.";
         }
+        if(!managerID.equals(AUTOMATIC_STORE_MANAGER)) {
+            this.logger.info("Manager with ID: " + managerID + " " + message + " communicate.Item information " + item.toString());
+        }
+        this.items.put(itemID, item);
+        this.itemsByName.putIfAbsent(itemName, new ConcurrentHashMap<>());
+        this.itemsByName.get(itemName).put(itemID, itemID);
+        this.itemHistory.put(itemID, item);
+        this.automaticallyAssignItem(itemID);
         return item.toString();
     }
 
     @Override
     public String removeItem(String managerID, String itemID, int quantity) throws ManagerRemoveBeyondQuantityException, ManagerRemoveNonExistingItemException {
-        this.lock.writeLock().lock();
         Item item = null;
         try {
             if(!this.items.containsKey(itemID)) {
@@ -231,28 +221,20 @@ public class Store extends ICommunicatePOA {
                     " units from an item with ID: " + itemID);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } finally {
-            this.lock.writeLock().unlock();
         }
         return item.toString();
     }
 
     @Override
     public String listItemAvailability(String managerID) {
-        this.lock.readLock().lock();
-        try {
-            this.logger.info("Manager with ID: " + managerID + " requested a list of available items.");
-            return this.items.values().stream().map(item -> item.getItemID() + " " + item.getItemName() + " " + item.getQuantity()  + " " + item.getPrice())
-                    .collect(Collectors.joining(", "));
-        } finally {
-            lock.readLock().unlock();
-        }
+        this.logger.info("Manager with ID: " + managerID + " requested a list of available items.");
+        return this.items.values().stream().map(item -> item.getItemID() + " " + item.getItemName() + " " + item.getQuantity()  + " " + item.getPrice())
+                .collect(Collectors.joining(", "));
     }
 
     @Override
     public void purchaseItem(String customerID, String itemID, String dateOfPurchase) throws ItemOutOfStockException,
             NotEnoughFundsException, ExternalStorePurchaseLimitException {
-        this.lock.writeLock().lock();
         Date processedDate = parseDate(dateOfPurchase);
         try {
             String store = this.getStore(itemID);
@@ -272,14 +254,11 @@ public class Store extends ICommunicatePOA {
                     " on " + dateOfPurchase + ".");
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
-        } finally {
-            this.lock.writeLock().unlock();
         }
     }
 
     @Override
     public String findItem(String customerID, String itemName) {
-        this.lock.readLock().lock();
         List<String> collectedItems = new ArrayList<>();
         ExecutorService executor = Executors.newWorkStealingPool();
         try {
@@ -313,8 +292,6 @@ public class Store extends ICommunicatePOA {
             e.printStackTrace();
         } catch (Exception e) {
             throw new IllegalStateException(e);
-        } finally {
-            this.lock.readLock().unlock();
         }
         return String.join(" ", collectedItems);
     }
@@ -325,7 +302,6 @@ public class Store extends ICommunicatePOA {
         String store = this.getStore(itemID);
         long returnWindow = generateReturnWindow(dateOfReturn);
         int productPrice = 0;
-        this.lock.writeLock().lock();
         try {
             if(this.belongsToCurrentStore(store)) {
                 Long purchaseTimestamp = verifyLocalReturn(customerID, itemID, dateOfReturn, returnWindow);
@@ -348,17 +324,13 @@ public class Store extends ICommunicatePOA {
                     "with ID: " + customerID + " on " + dateOfReturn);
         } catch (InterruptedException | ExecutionException | ManagerItemPriceMismatchException e) {
             e.printStackTrace();
-        } finally {
-            this.lock.writeLock().unlock();
         }
-
     }
 
     @Override
     public void exchangeItem(String customerID, String newItemID, String oldItemID, String dateOfExchange) throws ReturnPolicyException,
             ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException
     {
-        this.lock.writeLock().lock();
         try {
             Date processedExchangeDate = this.parseDate(dateOfExchange);
             String oldItemStore = this.getStore(oldItemID); // return
@@ -400,10 +372,7 @@ public class Store extends ICommunicatePOA {
 
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
-        } finally {
-            this.lock.writeLock().unlock();
         }
-
     }
 
     @Override
@@ -421,86 +390,59 @@ public class Store extends ICommunicatePOA {
     }
 
     private List<String> listAllItemsByNameSync(String itemName) {
-        this.lock.readLock().lock();
         List<String> itemsFromCurrentStore = new ArrayList<>();
-        try {
-            if(this.itemsByName.containsKey(itemName)) {
-                itemsFromCurrentStore.addAll(this.itemsByName.get(itemName)
-                        .stream().map(this.items::get)
-                        .map(Item::serializeByName)
-                        .collect(Collectors.toList()));
-            }
-        } finally {
-            this.lock.readLock().unlock();
+        if(this.itemsByName.containsKey(itemName)) {
+            itemsFromCurrentStore.addAll(this.itemsByName.get(itemName).newKeySet()
+                    .stream().map(this.items::get)
+                    .map(Item::serializeByName)
+                    .collect(Collectors.toList()));
         }
         return itemsFromCurrentStore;
     }
 
     private void reduceQuantityAfterPurchaseSync(Item item) {
-        this.lock.writeLock().lock();
-        try {
-            item.removeSingleQuantity();
-            if(item.getQuantity() <= 0) {
-                this.removeItemFromStore(item);
-            } else {
-                this.items.put(item.getItemID(), item);
-            }
-        } finally {
-            this.lock.writeLock().unlock();
+        if(item.getQuantity() - 1 <= 0) {
+            this.removeItemFromStore(item);
+        } else {
+            this.items.put(item.getItemID(), new Item(item.getItemID(), item.getItemName(), item.getQuantity() - 1, item.getPrice()));
         }
     }
 
     private void addCustomerToWaitlistSync(String customerID, String itemID) {
-        this.lock.writeLock().lock();
-        try {
-            this.itemsWaitlist.putIfAbsent(itemID, new LinkedList<>());
-            this.itemsWaitlist.get(itemID).addLast(customerID);
-            this.automaticallyAssignItem(itemID);
-        } finally {
-            this.lock.writeLock().unlock();
-        }
+        this.itemsWaitlist.putIfAbsent(itemID, new ConcurrentLinkedDeque<>());
+        this.itemsWaitlist.get(itemID).addLast(customerID);
+        this.automaticallyAssignItem(itemID);
     }
 
     private Item getItemByIDSync(String itemID) {
-        this.lock.readLock().lock();
-        try {
-            return this.itemHistory.get(itemID);
-        } finally {
-            this.lock.readLock().unlock();
-        }
+        return this.itemHistory.get(itemID);
     }
 
-    private int  getClientBudgetSync(String customerID) {
-        this.lock.writeLock().lock();
-        try {
-            this.customers.putIfAbsent(customerID, CUSTOMER_BUDGET);
-            return this.customers.get(customerID);
-        } finally {
-            this.lock.writeLock().unlock();
-        }
+    private int getClientBudgetSync(String customerID) {
+        this.customers.putIfAbsent(customerID, CUSTOMER_BUDGET);
+        return this.customers.get(customerID);
     }
 
     private boolean externalPurchaseLimitSync(String store, String customerID) {
-        this.lock.readLock().lock();
-        try {
-            return this.customersWithExternalPurchases.containsKey(customerID) &&
-                    this.customersWithExternalPurchases.get(customerID).contains(store);
-        } finally {
-            this.lock.readLock().unlock();
-        }
+        return this.customersWithExternalPurchases.containsKey(customerID) &&
+                this.customersWithExternalPurchases.get(customerID).containsKey(store);
     }
 
     private void clearExternalPurchasesByItemIDSync(String store, String itemID) {
-        this.lock.writeLock().lock();
-        try {
-            if(this.externallyPurchasedItems.containsKey(itemID)) {
-                this.externallyPurchasedItems.get(itemID).keySet()
-                        .forEach(customerID -> this.customersWithExternalPurchases.get(customerID).remove(store));
-                this.externallyPurchasedItems.remove(itemID);
-            }
-        } finally {
-            this.lock.writeLock().unlock();
+        if(this.externallyPurchasedItems.containsKey(itemID)) {
+            this.externallyPurchasedItems.get(itemID).keySet()
+                    .forEach(customerID -> this.customersWithExternalPurchases.get(customerID).remove(store));
+            this.externallyPurchasedItems.remove(itemID);
         }
+    }
+
+    private void checkoutExternalPurchaseSync(String store, String customerID, String itemID, int price, Date dateOfPurchase) {
+        int budget = this.getClientBudgetSync(customerID);
+        this.externallyPurchasedItems.putIfAbsent(itemID, new ConcurrentHashMap<>());
+        this.externallyPurchasedItems.get(itemID).putIfAbsent(customerID, dateOfPurchase.getTime());
+        this.customers.put(customerID, budget - price);
+        this.customersWithExternalPurchases.putIfAbsent(customerID, new ConcurrentHashMap<>());
+        this.customersWithExternalPurchases.get(customerID).put(store, store);
     }
 
     private long verifyExternalReturn(String customerID, String itemID, String dateOfReturn, long returnWindow) throws ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ReturnPolicyException {
@@ -599,22 +541,8 @@ public class Store extends ICommunicatePOA {
         return Integer.parseInt(purchaseResult);
     }
 
-    private void checkoutExternalPurchaseSync(String store, String customerID, String itemID, int price, Date dateOfPurchase) {
-        this.lock.writeLock().lock();
-        try{
-            int budget = this.getClientBudgetSync(customerID);
-            this.externallyPurchasedItems.putIfAbsent(itemID, new HashMap<>());
-            this.externallyPurchasedItems.get(itemID).putIfAbsent(customerID, dateOfPurchase.getTime());
-            this.customers.put(customerID, budget - price);
-            this.customersWithExternalPurchases.putIfAbsent(customerID, new HashSet<>());
-            this.customersWithExternalPurchases.get(customerID).add(store);
-        } finally {
-            this.lock.writeLock().unlock();
-        }
-    }
-
     private void checkoutLocalPurchase(String customerID, String itemID, int budget, Item item, long timestamp) {
-        this.locallyPurchasedItems.putIfAbsent(itemID, new HashMap());
+        this.locallyPurchasedItems.putIfAbsent(itemID, new ConcurrentHashMap());
         this.locallyPurchasedItems.get(itemID).putIfAbsent(customerID, new TreeSet<>());
         this.locallyPurchasedItems.get(itemID).get(customerID).add(timestamp);
         this.customers.put(customerID, budget - item.getPrice());
