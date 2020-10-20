@@ -31,7 +31,8 @@ public class UserDriver {
                 System.out.println("Choose user client:");
                 System.out.println("1.managerClient");
                 System.out.println("2.customerClient");
-                System.out.println("3.exit");
+                System.out.println("3.Concurrent driver");
+                System.out.println("4.exit");
 
                 String clientChoice = myObj.nextLine();
                 System.out.println();
@@ -39,6 +40,8 @@ public class UserDriver {
                     runManagerClient();
                 } else if(clientChoice.equals("2")) {
                     runCustomerClient();
+                } else if(clientChoice.equals("3")) {
+                    runConcurrentDriver();
                 } else {
                     System.exit(1);
                 }
@@ -49,10 +52,118 @@ public class UserDriver {
         }
     }
 
+    private static void runConcurrentDriver() throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound, IOException {
+        Scanner myObj = new Scanner(System.in);
+        System.out.println("Choose operation:");
+        System.out.println("1.Purchase + Exchange");
+        System.out.println("2.Return + Exchange");
+        System.out.println("3.Purchase + Return + Exchange");
+        String operationChoice = myObj.nextLine();
+        System.out.println();
+        if(operationChoice.equals("1")) {
+            Manager manager = getManager("QCM1111");
+            manager.addItem("QCM1111", "QC1111", "fish", 1, 20);
+            manager.addItem("QCM1111", "QC2222", "milk", 2, 100);
+
+            Customer customerBC = getCustomer("BCU1111");
+            Customer customerON = getCustomer("ONU1111");
+            Customer customerQC = getCustomer("QCU1111");
+            customerBC.purchaseItem("BCU1111", "QC2222", "10041995");
+            new Thread(() -> {
+                try {
+                    customerQC.purchaseItem("QCU1111", "QC1111", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerON.purchaseItem("ONU1111", "QC1111", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerBC.exchangeItem("BCU1111", "QC1111", "QC2222", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } else if(operationChoice.equals("2")) {
+            Manager manager = getManager("QCM1111");
+            manager.addItem("QCM1111", "QC1111", "fish", 5, 20);
+            manager.addItem("QCM1111", "QC2222", "gold", 5, 100);
+            Customer customerBC = getCustomer("BCU1111");
+            Customer customerON = getCustomer("ONU1111");
+            Customer customerQC = getCustomer("QCU1111");
+            customerBC.purchaseItem("BCU1111", "QC1111", "10041995");
+            customerON.purchaseItem("ONU1111", "QC1111", "10041995");
+            customerQC.purchaseItem("QCU1111", "QC1111", "10041995");
+
+            new Thread(() -> {
+                try {
+                    customerBC.exchangeItem("BCU1111", "QC2222", "QC1111", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerON.returnItem("ONU1111","QC1111", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerQC.exchangeItem("QCU1111", "QC2222", "QC1111", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } else if(operationChoice.equals("3")) {
+            Manager managerQC = getManager("QCM1111");
+            Manager managerBC = getManager("BCM1111");
+            managerQC.addItem("QCM1111", "QC1111", "fish", 5, 20);
+            managerBC.addItem("BCM1111", "BC2222", "gold", 5, 100);
+            Customer customerBC = getCustomer("BCU1111");
+            Customer customerON = getCustomer("ONU1111");
+            Customer customerQC = getCustomer("QCU1111");
+            new Thread(() -> {
+                try {
+                    customerQC.purchaseItem("QCU1111", "QC1111", "11041995");
+                    customerQC.exchangeItem("QCU1111", "BC2222", "QC1111", "11041995");
+                    customerQC.returnItem("QCU1111","BC2222", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerON.purchaseItem("ONU1111", "QC1111", "11041995");
+                    customerON.exchangeItem("ONU1111", "BC2222", "QC1111", "11041995");
+                    customerON.returnItem("ONU1111","BC2222", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerBC.purchaseItem("BCU1111", "QC1111", "11041995");
+                    customerBC.exchangeItem("BCU1111", "BC2222", "QC1111", "11041995");
+                    customerBC.returnItem("BCU1111","BC2222", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
     private static void runManagerClient() throws IOException, NumberFormatException, InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         while(true) {
             Scanner myObj = new Scanner(System.in);
-            System.out.println("Available operations:");
+            System.out.println("Choose operation:");
             System.out.println("1.addItem");
             System.out.println("2.removeItem");
             System.out.println("3.listItemAvailability");
@@ -97,7 +208,7 @@ public class UserDriver {
     private static void runCustomerClient() throws IOException, InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
         while(true) {
             Scanner myObj = new Scanner(System.in);
-            System.out.println("Available operations:");
+            System.out.println("Choose operation:");
             System.out.println("1.purchaseItem");
             System.out.println("2.findItem");
             System.out.println("3.returnItem");
