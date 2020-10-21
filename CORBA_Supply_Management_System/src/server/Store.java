@@ -175,8 +175,10 @@ public class Store extends ICommunicatePOA {
             if(this.items.get(itemID).getPrice() != price && !managerID.equals(AUTOMATIC_STORE_MANAGER)) {
                 throw new ManagerItemPriceMismatchException("Add item unsuccessful. communicate.Item price does not match");
             }
-            int oldQuantity = this.items.get(itemID).getQuantity();
-            item.setQuantity(quantity + oldQuantity);
+            synchronized (this) {
+                int oldQuantity = this.items.get(itemID).getQuantity();
+                item.setQuantity(quantity + oldQuantity);
+            }
             message = "updated an existing item.";
         }
         if(!managerID.equals(AUTOMATIC_STORE_MANAGER)) {
@@ -195,27 +197,29 @@ public class Store extends ICommunicatePOA {
         Item item = null;
         try {
             if(!this.items.containsKey(itemID)) {
-                throw new ManagerRemoveNonExistingItemException("communicate.Item does not exist");
+                throw new ManagerRemoveNonExistingItemException("item does not exist");
             }
             item = this.items.get(itemID);
             if(item.getQuantity() < quantity) {
                 throw new ManagerRemoveBeyondQuantityException("Can not remove beyond the quantity.");
             }
-            int updatedQuantity = item.getQuantity() - quantity;
-            if(quantity == -1 || updatedQuantity <= 0) {
-                this.removeItemFromStore(item);
-                this.locallyPurchasedItems.remove(itemID);
-                ExecutorService executor = Executors.newWorkStealingPool();
-                List<StoreClientUDP> storeCallables = this.generetaAllStoreCallables(Arrays.asList(CLEAR_ALL_ITEM_PURCHASES, this.locationName, itemID));
+            synchronized (this) {
+                int updatedQuantity = item.getQuantity() - quantity;
+                if(quantity == -1 || updatedQuantity <= 0) {
+                    this.removeItemFromStore(item);
+                    this.locallyPurchasedItems.remove(itemID);
+                    ExecutorService executor = Executors.newWorkStealingPool();
+                    List<StoreClientUDP> storeCallables = this.generetaAllStoreCallables(Arrays.asList(CLEAR_ALL_ITEM_PURCHASES, this.locationName, itemID));
 
-                // Send requests
-                executor.invokeAll(storeCallables);
-                executor.shutdown();
-                this.logger.info("Manager with ID: " + managerID + " " +
-                        "has completely removed an item with ID: " + itemID);
-                return item.toString();
+                    // Send requests
+                    executor.invokeAll(storeCallables);
+                    executor.shutdown();
+                    this.logger.info("Manager with ID: " + managerID + " " +
+                            "has completely removed an item with ID: " + itemID);
+                    return item.toString();
+                }
+                item.setQuantity(updatedQuantity);
             }
-            item.setQuantity(updatedQuantity);
             this.items.put(itemID, item);
             this.logger.info("Manager with ID: " + managerID + " removed " + quantity + "" +
                     " units from an item with ID: " + itemID);
@@ -333,8 +337,8 @@ public class Store extends ICommunicatePOA {
     {
         try {
             Date processedExchangeDate = this.parseDate(dateOfExchange);
-            String oldItemStore = this.getStore(oldItemID); // return
-            String newItemStore = this.getStore(newItemID); // purchase
+            String oldItemStore = this.getStore(oldItemID);
+            String newItemStore = this.getStore(newItemID);
             long returnWindow = this.generateReturnWindow(dateOfExchange);
             long localOldTimestamp = 0;
 
@@ -356,13 +360,15 @@ public class Store extends ICommunicatePOA {
                 this.customers.put(customerID, this.customers.get(customerID) + oldProductPrice);
                 if(!this.belongsToCurrentStore(newItemStore) && oldItemStore.equals(newItemStore)) {
                     int itemPrice = this.purchaseItemExternally(newItemStore, customerID, newItemID, processedExchangeDate);
-                    this.returnItem(customerID, oldItemID, dateOfExchange);
+
+                    // Return item
+                    this.returnItemIgnoreVerification(customerID, oldItemID, dateOfExchange, localOldTimestamp);
 
                     /* Finish processing purchase of item from the same external store */
                     this.checkoutExternalPurchaseSync(newItemStore, customerID, newItemID, itemPrice, processedExchangeDate);
                 } else {
                     this.purchaseItem(customerID, newItemID, dateOfExchange);
-                    this.returnItem(customerID, oldItemID, dateOfExchange);
+                    this.returnItemIgnoreVerification(customerID, oldItemID, dateOfExchange, localOldTimestamp);
                 }
             } finally {
                 this.customers.put(customerID, this.customers.get(customerID) - oldProductPrice);
@@ -400,11 +406,10 @@ public class Store extends ICommunicatePOA {
         return itemsFromCurrentStore;
     }
 
-    private void reduceQuantityAfterPurchaseSync(Item item) {
-        if(item.getQuantity() - 1 <= 0) {
+    private synchronized void reduceQuantityAfterPurchaseSync(Item item) {
+        item.removeSingleQuantity();
+        if(item.getQuantity() <= 0) {
             this.removeItemFromStore(item);
-        } else {
-            this.items.put(item.getItemID(), new Item(item.getItemID(), item.getItemName(), item.getQuantity() - 1, item.getPrice()));
         }
     }
 
@@ -616,6 +621,34 @@ public class Store extends ICommunicatePOA {
             }
         }
         return storeCallables;
+    }
+
+    public void returnItemIgnoreVerification(String customerID, String itemID, String dateOfReturn, Long purchaseTimestamp) {
+        String store = this.getStore(itemID);
+        int productPrice = 0;
+        try {
+            if(this.belongsToCurrentStore(store)) {
+                Item item = this.itemHistory.get(itemID);
+                this.addItem(AUTOMATIC_STORE_MANAGER, item.getItemID(), item.getItemName(), 1, item.getPrice());
+                if(this.locallyPurchasedItems.containsKey(itemID) && this.locallyPurchasedItems.get(itemID).containsKey(customerID)) {
+                    this.locallyPurchasedItems.get(itemID).get(customerID).remove(purchaseTimestamp);
+                }
+                productPrice = item.getPrice();
+            } else {
+                ExecutorService executor = Executors.newSingleThreadExecutor();
+                Future<List<String>> future = executor.submit(new StoreClientUDP(Arrays.asList(RETURN_ITEM, this.locationName, itemID),
+                        this.portsConfig.get(store)));
+                productPrice = Integer.parseInt(future.get().get(0));
+                executor.shutdown();
+                this.externallyPurchasedItems.get(itemID).remove(customerID);
+                this.customersWithExternalPurchases.get(customerID).remove(store);
+            }
+            this.customers.put(customerID, this.customers.get(customerID) + productPrice);
+            this.logger.info("Successfully returned item with ID: " + itemID + " purchased by the customer " +
+                    "with ID: " + customerID + " on " + dateOfReturn);
+        } catch (InterruptedException | ExecutionException | ManagerItemPriceMismatchException e) {
+            e.printStackTrace();
+        }
     }
 
     public void listen() {

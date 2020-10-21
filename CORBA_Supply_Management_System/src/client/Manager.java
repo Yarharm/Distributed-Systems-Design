@@ -51,7 +51,7 @@ public class Manager {
                     "item info: " + item);
         } catch(ManagerRemoveNonExistingItemException e) {
             this.logger.severe("Manager with ID: " + managerID + " was trying to remove " + msg + "an item with ID: " + itemID +
-                    "but such an item does not exist.");
+                    " but such an item does not exist.");
         } catch(ManagerRemoveBeyondQuantityException e) {
             this.logger.severe("Manager with ID: " + managerID + " was trying to remove more quantity than available in a store " +
                     "for the item with ID: " + itemID);

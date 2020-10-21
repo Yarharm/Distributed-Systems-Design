@@ -7,7 +7,7 @@ public class Item implements Serializable {
     private final String itemID;
     private final String itemName;
     private final int price;
-    private int quantity;
+    private volatile int quantity;
 
     public Item(String itemID, String itemName, int quantity, int price) {
         this.itemID = itemID;

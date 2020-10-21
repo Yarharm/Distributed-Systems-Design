@@ -52,12 +52,14 @@ public class UserDriver {
         }
     }
 
-    private static void runConcurrentDriver() throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound, IOException {
+    private static void runConcurrentDriver() throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound, IOException, InterruptedException {
         Scanner myObj = new Scanner(System.in);
         System.out.println("Choose operation:");
         System.out.println("1.Purchase + Exchange");
         System.out.println("2.Return + Exchange");
         System.out.println("3.Purchase + Return + Exchange");
+        System.out.println("4.Exchange Atomicity 1");
+        System.out.println("5.Exchange Atomicity 2");
         String operationChoice = myObj.nextLine();
         System.out.println();
         if(operationChoice.equals("1")) {
@@ -68,7 +70,7 @@ public class UserDriver {
             Customer customerBC = getCustomer("BCU1111");
             Customer customerON = getCustomer("ONU1111");
             Customer customerQC = getCustomer("QCU1111");
-            customerBC.purchaseItem("BCU1111", "QC2222", "10041995");
+
             new Thread(() -> {
                 try {
                     customerQC.purchaseItem("QCU1111", "QC1111", "11041995");
@@ -85,6 +87,7 @@ public class UserDriver {
             }).start();
             new Thread(() -> {
                 try {
+                    customerON.purchaseItem("BCU1111", "QC2222", "11041995");
                     customerBC.exchangeItem("BCU1111", "QC1111", "QC2222", "11041995");
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -97,12 +100,11 @@ public class UserDriver {
             Customer customerBC = getCustomer("BCU1111");
             Customer customerON = getCustomer("ONU1111");
             Customer customerQC = getCustomer("QCU1111");
-            customerBC.purchaseItem("BCU1111", "QC1111", "10041995");
-            customerON.purchaseItem("ONU1111", "QC1111", "10041995");
-            customerQC.purchaseItem("QCU1111", "QC1111", "10041995");
+            Customer customerBC2222 = getCustomer("BCU2222");
 
             new Thread(() -> {
                 try {
+                    customerBC.purchaseItem("BCU1111", "QC1111", "10041995");
                     customerBC.exchangeItem("BCU1111", "QC2222", "QC1111", "11041995");
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -110,6 +112,7 @@ public class UserDriver {
             }).start();
             new Thread(() -> {
                 try {
+                    customerON.purchaseItem("ONU1111", "QC1111", "10041995");
                     customerON.returnItem("ONU1111","QC1111", "11041995");
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -117,7 +120,16 @@ public class UserDriver {
             }).start();
             new Thread(() -> {
                 try {
+                    customerQC.purchaseItem("QCU1111", "QC1111", "10041995");
                     customerQC.exchangeItem("QCU1111", "QC2222", "QC1111", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerBC2222.purchaseItem("BCU2222", "QC1111", "10041995");
+                    customerBC2222.returnItem("BCU2222","QC1111", "11041995");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -130,6 +142,8 @@ public class UserDriver {
             Customer customerBC = getCustomer("BCU1111");
             Customer customerON = getCustomer("ONU1111");
             Customer customerQC = getCustomer("QCU1111");
+            Customer customerQC2222 = getCustomer("QCU2222");
+            Customer customerON2222 = getCustomer("ONU2222");
             new Thread(() -> {
                 try {
                     customerQC.purchaseItem("QCU1111", "QC1111", "11041995");
@@ -157,6 +171,137 @@ public class UserDriver {
                     e.printStackTrace();
                 }
             }).start();
+            new Thread(() -> {
+                try {
+                    customerQC2222.purchaseItem("QCU2222", "QC1111", "11041995");
+                    customerQC2222.exchangeItem("QCU2222", "BC2222", "QC1111", "11041995");
+                    customerQC2222.returnItem("QCU2222","BC2222", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerON2222.purchaseItem("ONU2222", "QC1111", "11041995");
+                    customerON2222.exchangeItem("ONU2222", "BC2222", "QC1111", "11041995");
+                    customerON2222.returnItem("ONU2222","BC2222", "11041995");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        } else if(operationChoice.equals("4")) {
+            Manager managerQC = getManager("QCM1111");
+            managerQC.addItem("QCM1111", "QC3333", "rice", 5, 20);
+            managerQC.addItem("QCM1111", "QC4444", "milk", 4, 20);
+            Customer customerBC3333 = getCustomer("BCU3333");
+            Customer customerON3333 = getCustomer("ONU3333");
+            Customer customerBC5555 = getCustomer("BCU5555");
+            Customer customerON4444 = getCustomer("ONU4444");
+            Customer customerBC4444 = getCustomer("BCU4444");
+
+            List<Thread> threadPool = new ArrayList<>(Arrays.asList(
+                    new Thread(() -> {
+                        try {
+                            customerBC3333.purchaseItem("BCU3333", "QC3333", "11041995");
+                            customerBC3333.exchangeItem("BCU3333", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerON3333.purchaseItem("ONU3333", "QC3333", "11041995");
+                            customerON3333.exchangeItem("ONU3333", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerBC5555.purchaseItem("BCU5555", "QC3333", "11041995");
+                            customerBC5555.exchangeItem("BCU5555", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerON4444.purchaseItem("ONU4444", "QC3333", "11041995");
+                            customerON4444.exchangeItem("ONU4444", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerBC4444.purchaseItem("BCU4444", "QC3333", "11041995");
+                            customerBC4444.exchangeItem("BCU4444", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    })
+            ));
+
+            for(Thread th : threadPool) {
+                th.start();
+            }
+        } else if(operationChoice.equals("5")) {
+            Manager managerQC = getManager("QCM1111");
+            managerQC.addItem("QCM1111", "QC3333", "rice", 5, 20);
+            managerQC.addItem("QCM1111", "QC4444", "milk", 1, 20);
+            Customer customerBC3333 = getCustomer("BCU3333");
+            Customer customerON3333 = getCustomer("ONU3333");
+            Customer customerBC5555 = getCustomer("BCU5555");
+            Customer customerON4444 = getCustomer("ONU4444");
+            Customer customerBC4444 = getCustomer("BCU4444");
+
+            customerBC3333.purchaseItem("BCU3333", "QC3333", "11041995");
+            customerON3333.purchaseItem("ONU3333", "QC3333", "11041995");
+            customerBC5555.purchaseItem("BCU5555", "QC3333", "11041995");
+            customerON4444.purchaseItem("ONU4444", "QC3333", "11041995");
+            customerBC4444.purchaseItem("BCU4444", "QC3333", "11041995");
+
+            List<Thread> threadPool = new ArrayList<>(Arrays.asList(
+                    new Thread(() -> {
+                        try {
+                            customerBC3333.exchangeItem("BCU3333", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerON3333.exchangeItem("ONU3333", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerBC5555.exchangeItem("BCU5555", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerON4444.exchangeItem("ONU4444", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }),
+                    new Thread(() -> {
+                        try {
+                            customerBC4444.exchangeItem("BCU4444", "QC4444", "QC3333", "11041995");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    })
+            ));
+
+            for(Thread th : threadPool) {
+                th.start();
+            }
         }
     }
 
