@@ -56,7 +56,7 @@ public class UserDriver {
         Scanner myObj = new Scanner(System.in);
         System.out.println("Choose operation:");
         System.out.println("1.Purchase + Exchange");
-        System.out.println("2.Return + Exchange");
+        System.out.println("2.Add + Purchase + Remove");
         System.out.println("3.Purchase + Return + Exchange");
         System.out.println("4.Exchange Atomicity 1");
         System.out.println("5.Exchange Atomicity 2");
@@ -96,32 +96,43 @@ public class UserDriver {
         } else if(operationChoice.equals("2")) {
             Manager manager = getManager("QCM1111");
             manager.addItem("QCM1111", "QC1111", "fish", 5, 20);
-            manager.addItem("QCM1111", "QC2222", "gold", 5, 100);
-            Customer customerBC = getCustomer("BCU1111");
-            Customer customerON = getCustomer("ONU1111");
-            Customer customerQC = getCustomer("QCU1111");
+            Customer customerBC1111 = getCustomer("BCU1111");
+            Customer customerON1111 = getCustomer("ONU1111");
+            Customer customerQC1111 = getCustomer("QCU1111");
             Customer customerBC2222 = getCustomer("BCU2222");
 
             new Thread(() -> {
                 try {
-                    customerBC.purchaseItem("BCU1111", "QC1111", "10041995");
-                    customerBC.exchangeItem("BCU1111", "QC2222", "QC1111", "11041995");
+                    customerBC1111.purchaseItem("BCU1111", "QC1111", "10041995");
+                    customerBC1111.returnItem("BCU1111", "QC1111", "10041995");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }).start();
             new Thread(() -> {
                 try {
-                    customerON.purchaseItem("ONU1111", "QC1111", "10041995");
-                    customerON.returnItem("ONU1111","QC1111", "11041995");
+                    customerON1111.purchaseItem("ONU1111", "QC1111", "10041995");
+                    customerON1111.returnItem("ONU1111", "QC1111", "10041995");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
             }).start();
             new Thread(() -> {
                 try {
-                    customerQC.purchaseItem("QCU1111", "QC1111", "10041995");
-                    customerQC.exchangeItem("QCU1111", "QC2222", "QC1111", "11041995");
+                    manager.removeItem("QCM1111", "QC1111", 2);
+                    manager.addItem("QCM1111", "QC1111", "fish", 2, 20);
+                    manager.removeItem("QCM1111", "QC1111", 2);
+                    manager.addItem("QCM1111", "QC1111", "fish", 2, 20);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+            new Thread(() -> {
+                try {
+                    customerQC1111.purchaseItem("QCU1111", "QC1111", "10041995");
+                    customerQC1111.returnItem("QCU1111", "QC1111", "10041995");
+                    customerQC1111.purchaseItem("QCU1111", "QC1111", "10041995");
+                    customerQC1111.returnItem("QCU1111", "QC1111", "10041995");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -129,7 +140,7 @@ public class UserDriver {
             new Thread(() -> {
                 try {
                     customerBC2222.purchaseItem("BCU2222", "QC1111", "10041995");
-                    customerBC2222.returnItem("BCU2222","QC1111", "11041995");
+                    customerBC2222.returnItem("BCU2222", "QC1111", "10041995");
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

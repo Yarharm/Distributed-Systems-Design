@@ -398,7 +398,7 @@ public class Store extends ICommunicatePOA {
     private List<String> listAllItemsByNameSync(String itemName) {
         List<String> itemsFromCurrentStore = new ArrayList<>();
         if(this.itemsByName.containsKey(itemName)) {
-            itemsFromCurrentStore.addAll(this.itemsByName.get(itemName).newKeySet()
+            itemsFromCurrentStore.addAll(this.itemsByName.get(itemName).keySet()
                     .stream().map(this.items::get)
                     .map(Item::serializeByName)
                     .collect(Collectors.toList()));
