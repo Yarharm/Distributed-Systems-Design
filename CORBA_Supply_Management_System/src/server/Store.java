@@ -61,7 +61,7 @@ public class Store extends ICommunicatePOA {
                                 if(!Store.this.items.containsKey(itemID)) {
                                     sb.append(ItemOutOfStockException.class.getSimpleName());
                                     Store.this.logger.info("Could not satisfy " + PURCHASE_ITEM + " request from " + storeLocation + " store. " +
-                                            "communicate.Item with ID: " + itemID + " is out of stock.");
+                                            "item with ID: " + itemID + " is out of stock.");
                                 } else if(budget < Store.this.items.get(itemID).getPrice()) {
                                     Store.this.logger.info("Could not satisfy " + PURCHASE_ITEM + " request from " + storeLocation + " store. " +
                                             "Customer with ID: " + customerID + " and budget: " + budget + " " +
@@ -173,7 +173,7 @@ public class Store extends ICommunicatePOA {
         String message =  "added a new item.";
         if(this.items.containsKey(itemID)) {
             if(this.items.get(itemID).getPrice() != price && !managerID.equals(AUTOMATIC_STORE_MANAGER)) {
-                throw new ManagerItemPriceMismatchException("Add item unsuccessful. communicate.Item price does not match");
+                throw new ManagerItemPriceMismatchException("Add item unsuccessful. item price does not match");
             }
             synchronized (this) {
                 int oldQuantity = this.items.get(itemID).getQuantity();
@@ -182,7 +182,7 @@ public class Store extends ICommunicatePOA {
             message = "updated an existing item.";
         }
         if(!managerID.equals(AUTOMATIC_STORE_MANAGER)) {
-            this.logger.info("Manager with ID: " + managerID + " " + message + " communicate.Item information " + item.toString());
+            this.logger.info("Manager with ID: " + managerID + " " + message + " item information " + item.toString());
         }
         this.items.put(itemID, item);
         this.itemsByName.putIfAbsent(itemName, new ConcurrentHashMap<>());
@@ -452,10 +452,10 @@ public class Store extends ICommunicatePOA {
 
     private long verifyExternalReturn(String customerID, String itemID, String dateOfReturn, long returnWindow) throws ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ReturnPolicyException {
         if(!this.externallyPurchasedItems.containsKey(itemID)) {
-            throw new ItemWasNeverPurchasedException("communicate.Item with ID: " + itemID + " was never purchased.");
+            throw new ItemWasNeverPurchasedException("item with ID: " + itemID + " was never purchased.");
         }
         if(!this.externallyPurchasedItems.get(itemID).containsKey(customerID)) {
-            throw new CustomerNeverPurchasedItemException("communicate.Item with ID: " + itemID + " was never purchased " +
+            throw new CustomerNeverPurchasedItemException("item with ID: " + itemID + " was never purchased " +
                     "by customer with ID: " + customerID);
         }
         Long purchaseTimestamp = this.externallyPurchasedItems.get(itemID).get(customerID);
@@ -467,10 +467,10 @@ public class Store extends ICommunicatePOA {
 
     private long verifyLocalReturn(String customerID, String itemID, String dateOfReturn, long returnWindow) throws ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ReturnPolicyException {
         if(!this.locallyPurchasedItems.containsKey(itemID)) {
-            throw new ItemWasNeverPurchasedException("communicate.Item with ID: " + itemID + " was never purchased.");
+            throw new ItemWasNeverPurchasedException("item with ID: " + itemID + " was never purchased.");
         }
         if(!this.locallyPurchasedItems.get(itemID).containsKey(customerID)) {
-            throw new CustomerNeverPurchasedItemException("communicate.Item with ID: " + itemID + " was never purchased " +
+            throw new CustomerNeverPurchasedItemException("item with ID: " + itemID + " was never purchased " +
                     "by customer with ID: " + customerID);
         }
         Long purchaseTimestamp = this.locallyPurchasedItems.get(itemID).get(customerID).ceiling(returnWindow);
@@ -518,7 +518,7 @@ public class Store extends ICommunicatePOA {
 
     private void purchaseItemLocally(String customerID, String itemID, Date dateOfPurchase) throws NotEnoughFundsException, ItemOutOfStockException {
         if(!this.items.containsKey(itemID)) {
-            throw new ItemOutOfStockException("communicate.Item with ID: " + itemID + " is out of stock.");
+            throw new ItemOutOfStockException("item with ID: " + itemID + " is out of stock.");
         }
         Item item = this.items.get(itemID);
         int budget = this.getClientBudgetSync(customerID);
@@ -537,7 +537,7 @@ public class Store extends ICommunicatePOA {
                 this.portsConfig.get(store)));
         String purchaseResult = future.get().get(0);
         if(purchaseResult.equals(ItemOutOfStockException.class.getSimpleName())) {
-            throw new ItemOutOfStockException("communicate.Item with ID: " + itemID + " is out of stock.");
+            throw new ItemOutOfStockException("item with ID: " + itemID + " is out of stock.");
         }
         if(purchaseResult.equals(NotEnoughFundsException.class.getSimpleName())) {
             throw new NotEnoughFundsException("Customer does not have enough funds!");

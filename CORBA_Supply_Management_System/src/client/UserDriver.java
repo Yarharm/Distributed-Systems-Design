@@ -87,7 +87,7 @@ public class UserDriver {
             }).start();
             new Thread(() -> {
                 try {
-                    customerON.purchaseItem("BCU1111", "QC2222", "11041995");
+                    customerBC.purchaseItem("BCU1111", "QC2222", "11041995");
                     customerBC.exchangeItem("BCU1111", "QC1111", "QC2222", "11041995");
                 } catch (Exception e) {
                     e.printStackTrace();
