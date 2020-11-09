@@ -71,7 +71,7 @@ public class Customer {
                     " on " + dateOfReturn + ".");
         } catch (ReturnPolicyException e) {
             this.logger.info("Customer with ID: " + customerID + " was trying to return an item with ID: " + itemID + "" +
-                    ", but it is beyond a Return Policy.");
+                    ", but it is a Return Policy violation.");
         } catch (ItemWasNeverPurchasedException e) {
             this.logger.info("Customer with ID: " + customerID + " was trying to return an item with ID: " + itemID + "" +
                     ", but such an item was never purchased from the store.");

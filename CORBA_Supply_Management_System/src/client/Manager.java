@@ -1,6 +1,5 @@
 package client;
 
-import communicate.*;
 import communicate.ICommunicatePackage.*;
 import org.omg.CORBA.ORBPackage.InvalidName;
 import org.omg.CosNaming.NamingContextPackage.CannotProceed;
@@ -26,17 +25,15 @@ public class Manager {
     }
 
     public void addItem(String managerID, String itemID, String itemName, int quantity, int price) throws InvalidName, CannotProceed, org.omg.CosNaming.NamingContextPackage.InvalidName, NotFound {
-        String item = new Item(itemID, itemName, quantity, price).toString();
         try {
-            item = this.stub.addItem(managerID, itemID, itemName, quantity, price);
+            String itemDesc = this.stub.addItem(managerID, itemID, itemName, quantity, price);
             this.logger.info("Manager with ID: " + this.managerID + " added an item to " + this.locationName + " store." +
-                    " item information: " + item.toString());
+                    " item information: " + itemDesc);
         } catch(ManagerItemPriceMismatchException e) {
             this.logger.info("Manager with ID: " + managerID + " was trying to add an item with ID: " + itemID + "," +
                     " but the price does not match.");
         } catch(IncorrectUserRoleException e) {
-            this.logger.severe("Permission alert! Customer with ID: " + managerID + " is not allowed to add items." +
-                    " Customer was trying to add the following item: " + item.toString());
+            this.logger.severe("Permission alert! Customer with ID: " + managerID + " is not allowed to add items.");
         } catch(ManagerExternalStoreItemException e) {
             this.logger.severe("Manager with ID: " + managerID + " was trying to add an item " + itemID + " which" +
                     " belongs to a different store.");

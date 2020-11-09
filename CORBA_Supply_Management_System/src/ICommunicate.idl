@@ -10,7 +10,6 @@ module communicate
     exception ItemOutOfStockException { wstring reason; };
     exception NotEnoughFundsException { wstring reason; };
     exception ExternalStorePurchaseLimitException { wstring reason; };
-    exception ItemWasNeverPurchasedException { wstring reason; };
     exception CustomerNeverPurchasedItemException { wstring reason; };
     exception ReturnPolicyException { wstring reason; };
 
@@ -18,12 +17,12 @@ module communicate
     wstring removeItem(in wstring managerID, in wstring itemID, in long quantity) raises(IncorrectUserRoleException, ManagerExternalStoreItemException, ManagerRemoveNonExistingItemException, ManagerRemoveBeyondQuantityException);
     wstring listItemAvailability(in wstring managerID) raises(IncorrectUserRoleException);
 
-    void purchaseItem(in wstring customerID, in wstring itemID, in wstring dateOfPurchase) raises(IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException);
+    wstring purchaseItem(in wstring customerID, in wstring itemID, in wstring dateOfPurchase) raises(IncorrectUserRoleException, ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException);
     wstring findItem(in wstring customerID, in wstring itemName) raises(IncorrectUserRoleException);
-    void returnItem(in wstring customerID, in wstring itemID, in wstring dateOfReturn) raises(IncorrectUserRoleException, ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ReturnPolicyException);
+    wstring returnItem(in wstring customerID, in wstring itemID, in wstring dateOfReturn) raises(IncorrectUserRoleException, CustomerNeverPurchasedItemException, ReturnPolicyException);
 
-    void addCustomerToWaitQueue(in wstring customerID, in wstring itemID);
+    wstring addCustomerToWaitQueue(in wstring customerID, in wstring itemID);
 
-    void exchangeItem(in wstring customerID, in wstring newItemID, in wstring oldItemID, in wstring dateOfExchange) raises(IncorrectUserRoleException, ReturnPolicyException, ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException);
+    wstring exchangeItem(in wstring customerID, in wstring newItemID, in wstring oldItemID, in wstring dateOfExchange) raises(IncorrectUserRoleException, ReturnPolicyException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException);
   };
 };
