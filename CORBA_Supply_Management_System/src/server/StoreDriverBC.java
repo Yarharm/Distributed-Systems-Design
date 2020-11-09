@@ -5,6 +5,8 @@ import org.omg.CosNaming.*;
 import org.omg.CORBA.*;
 import org.omg.PortableServer.*;
 import org.omg.PortableServer.POA;
+import server.data.inventory.InventoryPool;
+import server.data.sales.SalesManagerPool;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,6 +17,7 @@ public class StoreDriverBC {
         portsConfig.put("QC", 8887);
         portsConfig.put("ON", 8888);
         portsConfig.put("BC", 8889);
+
         try{
             // create and initialize the ORB
             ORB orb = ORB.init(args, null);
@@ -24,8 +27,11 @@ public class StoreDriverBC {
             rootpoa.the_POAManager().activate();
 
             // create servant and register it with the ORB
-            StoreProxy storeProxy = new StoreProxy("BC", portsConfig);
-            storeProxy.initializeStore();
+            StoreProxy storeProxy = new StoreProxy("BC",
+                    InventoryPool.getInventoryOnLocation("BC"),
+                    SalesManagerPool.getSalesManagerOnLocation("BC"),
+                    portsConfig);
+            storeProxy.initializeStore(portsConfig.get("BC"));
 
             // get object reference from the servant
             org.omg.CORBA.Object ref = rootpoa.servant_to_reference(storeProxy);

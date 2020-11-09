@@ -2,6 +2,8 @@ package server;
 
 import communicate.*;
 import communicate.ICommunicatePackage.*;
+import server.data.inventory.StoreInventory;
+import server.data.sales.SalesManager;
 
 import java.io.IOException;
 import java.util.Map;
@@ -9,13 +11,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.Handler;
 import java.util.logging.Logger;
 
-/*
-    StoreProxy is a wrapper on top of Store which performs any necessary validation prior
-    executing a concrete operation.
-    StoreProxy uses Proxy protection pattern.
-    StoreProxy contains a concrete Store through decomposition and is the only API which allows
-    communication with a store.
- */
+
 public class StoreProxy extends ICommunicatePOA {
     private enum UserRole {
         M('M'), U('U');
@@ -31,12 +27,12 @@ public class StoreProxy extends ICommunicatePOA {
     private final Store store;
     private final String locationName;
     private final Logger logger;
-    public StoreProxy(String locationName, Map<String, Integer> portsConfig) {
+    public StoreProxy(String locationName,
+                      StoreInventory inventory, SalesManager salesManager, Map<String, Integer> portsConfig) {
         super();
         this.logger = Logger.getLogger(locationName);
-        this.store = new Store(locationName, this.logger, portsConfig);
+        this.store = new Store(locationName, inventory, salesManager, portsConfig);
         this.locationName = locationName;
-
     }
 
     @Override
@@ -44,15 +40,16 @@ public class StoreProxy extends ICommunicatePOA {
         try {
             this.validateUser(managerID, UserRole.M);
             this.validateItem(managerID, itemID);
-            return this.store.addItem(managerID, itemID, itemName, quantity, price);
+            String itemDescription = this.store.addItem(managerID, itemID, itemName, quantity, price);
+            this.logger.info("Successfully added item. " + itemDescription);
+            return itemDescription;
         }  catch (ManagerItemPriceMismatchException e) {
             this.logger.info("Manager with ID: " + managerID + " tried to add an item with ID : " + itemID + "," +
                     " but the price does not match.");
             throw new ManagerItemPriceMismatchException(e.getMessage());
         } catch(IncorrectUserRoleException e) {
-            Item item = new Item(itemID, itemName, quantity, price);
             this.logger.severe("Permission alert! Customer with ID: " + managerID +
-                    " was trying add the following item: " + item.toString());
+                    " was trying add an item: ");
             throw new IncorrectUserRoleException(e.getMessage());
         } catch(ManagerExternalStoreItemException e) {
             this.logger.severe("Permission alert! Manager with ID: " + managerID + " " +
@@ -68,7 +65,10 @@ public class StoreProxy extends ICommunicatePOA {
         try {
             this.validateUser(managerID, UserRole.M);
             this.validateItem(managerID, itemID);
-            return this.store.removeItem(managerID, itemID, quantity);
+            String itemDescription = this.store.removeItem(managerID, itemID, quantity);
+            this.logger.info("Manager with ID: " + managerID + " removed " + quantity + "" +
+                    " units from an item. " + itemDescription);
+            return itemDescription;
         } catch(ManagerRemoveNonExistingItemException e) {
             String msg = quantity == -1 ? "completely remove" : "remove " + quantity + " units from";
             this.logger.info("Manager with ID: " + managerID + " was trying to " +
@@ -100,15 +100,19 @@ public class StoreProxy extends ICommunicatePOA {
                     " was trying to list available items in the store.");
             throw new IncorrectUserRoleException(e.getMessage());
         }
+        this.logger.info("Manager with ID: " + managerID + " requested a list of available items.");
         return this.store.listItemAvailability(managerID);
     }
 
     @Override
-    public void purchaseItem(String customerID, String itemID, String dateOfPurchase)throws IncorrectUserRoleException,
+    public String purchaseItem(String customerID, String itemID, String dateOfPurchase)throws IncorrectUserRoleException,
             ItemOutOfStockException, NotEnoughFundsException, ExternalStorePurchaseLimitException {
         try {
             this.validateUser(customerID, UserRole.U);
-            this.store.purchaseItem(customerID, itemID, dateOfPurchase);
+            String purchaseResult = this.store.purchaseItem(customerID, itemID, dateOfPurchase);
+            this.logger.info("Customer with ID: " + customerID + " successfully purchased an item with ID: " + itemID + "" +
+                    " on " + dateOfPurchase + ".");
+            return purchaseResult;
         } catch(ItemOutOfStockException e) {
             this.logger.info("Customer with ID: " + customerID + " attempted to purchase an item with ID:" +
                     " " + itemID + " on " + dateOfPurchase + ", but such an item is out of stock.");
@@ -138,15 +142,20 @@ public class StoreProxy extends ICommunicatePOA {
                     "was trying to find items with " + itemName + " name.");
             throw new IncorrectUserRoleException(e.getMessage());
         }
-        return this.store.findItem(customerID, itemName);
+        String result = this.store.findItem(customerID, itemName);
+        this.logger.info("Customer with ID: " + customerID + " requested to find all items based on " + itemName + " name.");
+        return result;
     }
 
     @Override
-    public void returnItem(String customerID, String itemID, String dateOfReturn) throws ReturnPolicyException,
-            CustomerNeverPurchasedItemException, ItemWasNeverPurchasedException, IncorrectUserRoleException {
+    public String returnItem(String customerID, String itemID, String dateOfReturn) throws ReturnPolicyException,
+            CustomerNeverPurchasedItemException, IncorrectUserRoleException {
         try {
             this.validateUser(customerID, UserRole.U);
-            this.store.returnItem(customerID, itemID, dateOfReturn);
+            String returnStatus = this.store.returnItem(customerID, itemID, dateOfReturn);
+            this.logger.info("Successfully returned item with ID: " + itemID + " purchased by the customer " +
+                    "with ID: " + customerID + " on " + dateOfReturn);
+            return returnStatus;
         } catch (ReturnPolicyException e) {
             this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + itemID + "" +
                     " , but it is beyond the return policy.");
@@ -155,10 +164,6 @@ public class StoreProxy extends ICommunicatePOA {
             this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + itemID + "" +
                     " , but the customer never purchased such an item.");
             throw new CustomerNeverPurchasedItemException(e.getMessage());
-        } catch (ItemWasNeverPurchasedException e) {
-            this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + itemID + "" +
-                    " , but such an item was never purchased from the store.");
-            throw new ItemWasNeverPurchasedException(e.getMessage());
         } catch (IncorrectUserRoleException e) {
             this.logger.severe("Permission alert! Manager with ID: " + customerID + " was trying to return an item" +
                     " with ID: " + itemID);
@@ -168,24 +173,23 @@ public class StoreProxy extends ICommunicatePOA {
     }
 
     @Override
-    public void addCustomerToWaitQueue(String customerID, String itemID) {
-        this.store.addCustomerToWaitQueue(customerID, itemID);
+    public String addCustomerToWaitQueue(String customerID, String itemID) {
+        return this.store.addCustomerToWaitQueue(customerID, itemID);
     }
 
     @Override
-    public void exchangeItem(String customerID, String newItemID, String oldItemID, String dateOfExchange) throws ReturnPolicyException,
-            ItemWasNeverPurchasedException, CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException, IncorrectUserRoleException {
+    public String exchangeItem(String customerID, String newItemID, String oldItemID, String dateOfExchange) throws ReturnPolicyException,
+            CustomerNeverPurchasedItemException, ExternalStorePurchaseLimitException, ItemOutOfStockException, NotEnoughFundsException, IncorrectUserRoleException {
         try {
             this.validateUser(customerID, UserRole.U);
-            this.store.exchangeItem(customerID, newItemID, oldItemID, dateOfExchange);
+            String exchangeStatus = this.store.exchangeItem(customerID, newItemID, oldItemID, dateOfExchange);
+            this.logger.info("Customer with ID: " + customerID + " has successfully exchanged an item with ID: " + oldItemID + "" +
+                    " for an item with ID: " + newItemID + " on " + dateOfExchange);
+            return exchangeStatus;
         }  catch (ReturnPolicyException e) {
             this.logger.info("Customer with ID: " + customerID + " tried to exchange an item with ID: " + oldItemID + "" +
                     " , for a new item with ID: " + newItemID + ", but it is beyond the return policy.");
             throw new ReturnPolicyException(e.getMessage());
-        } catch (ItemWasNeverPurchasedException e) {
-            this.logger.info("Customer with ID: " + customerID + " tried to exchange an item with ID: " + oldItemID + "" +
-                    " , but such an item was never purchased from the store.");
-            throw new ItemWasNeverPurchasedException(e.getMessage());
         } catch (CustomerNeverPurchasedItemException e) {
             this.logger.info("Customer with ID: " + customerID + " tried to return an item with ID: " + oldItemID + "" +
                     " , but the customer never purchased such an item.");
@@ -211,8 +215,8 @@ public class StoreProxy extends ICommunicatePOA {
 
     }
 
-    public void initializeStore() throws IOException {
-        this.store.listen();
+    public void initializeStore(int port) throws IOException {
+        this.store.listen(port);
         setupLogger();
     }
 

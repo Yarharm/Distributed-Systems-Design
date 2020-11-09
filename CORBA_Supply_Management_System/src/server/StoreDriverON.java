@@ -8,6 +8,8 @@ import org.omg.CosNaming.NamingContextExt;
 import org.omg.CosNaming.NamingContextExtHelper;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
+import server.data.inventory.InventoryPool;
+import server.data.sales.SalesManagerPool;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,8 +29,11 @@ public class StoreDriverON {
             rootpoa.the_POAManager().activate();
 
             // create servant and register it with the ORB
-            StoreProxy storeProxy = new StoreProxy("ON", portsConfig);
-            storeProxy.initializeStore();
+            StoreProxy storeProxy = new StoreProxy("ON",
+                    InventoryPool.getInventoryOnLocation("ON"),
+                    SalesManagerPool.getSalesManagerOnLocation("ON"),
+                    portsConfig);
+            storeProxy.initializeStore(portsConfig.get("ON"));
 
             // get object reference from the servant
             org.omg.CORBA.Object ref = rootpoa.servant_to_reference(storeProxy);
