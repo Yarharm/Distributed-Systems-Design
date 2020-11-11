@@ -22,6 +22,6 @@ public class StoreDriverON {
             storeProxy.initializeStore(portsConfig.get("ON"));
         } catch (Exception ignore){}
 
-        Endpoint.publish("http://localhost:9999/ON", storeProxy);
+        Endpoint.publish("http://localhost:8888/ON", storeProxy);
     }
 }

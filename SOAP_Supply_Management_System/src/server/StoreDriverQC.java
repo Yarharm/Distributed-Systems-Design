@@ -22,6 +22,6 @@ public class StoreDriverQC {
             storeProxy.initializeStore(portsConfig.get("QC"));
         } catch (Exception ignore){}
 
-        Endpoint.publish("http://localhost:9999/QC", storeProxy);
+        Endpoint.publish("http://localhost:8887/QC", storeProxy);
     }
 }

@@ -29,7 +29,7 @@ public class RequestHandlerUDP implements RequestHandler {
         StringBuilder result = new StringBuilder();
         int itemPrice = this.storeInventory.getItemPrice(itemID);
 
-        if(!this.storeInventory.isItemInStock(itemID)) {
+        if(!this.storeInventory.isItemInStockWithQuantity(itemID)) {
             result.append(ItemOutOfStockException.class.getSimpleName());
         } else if(budget < itemPrice) {
             result.append(NotEnoughFundsException.class.getSimpleName());

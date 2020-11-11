@@ -3,6 +3,7 @@ package client;
 import interface_repository.ICommunicate;
 import org.omg.CORBA.ORB;
 import exceptions.*;
+import server.StoreProxy;
 
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
@@ -66,9 +67,9 @@ public class StubFacade {
 
     public ICommunicate fetchStore() throws MalformedURLException {
         Map<String, String> urls = new HashMap();
-        urls.put("QC", "http://localhost:9999/QC");
-        urls.put("ON", "http://localhost:9999/ON");
-        urls.put("BC", "http://localhost:9999/BC");
+        urls.put("QC", "http://localhost:8887/QC");
+        urls.put("ON", "http://localhost:8888/ON");
+        urls.put("BC", "http://localhost:8889/BC");
 
         URL url = new URL(urls.get(this.locationName) + "?wsdl");
         QName qname = new QName("http://server/", "StoreProxyService");

@@ -22,6 +22,6 @@ public class StoreDriverBC {
             storeProxy.initializeStore(portsConfig.get("BC"));
         } catch (Exception ignore){}
 
-        Endpoint.publish("http://localhost:9999/BC", storeProxy);
+        Endpoint.publish("http://localhost:8889/BC", storeProxy);
     }
 }
