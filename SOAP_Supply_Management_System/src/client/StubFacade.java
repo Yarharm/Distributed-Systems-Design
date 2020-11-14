@@ -1,9 +1,7 @@
 package client;
 
 import interface_repository.ICommunicate;
-import org.omg.CORBA.ORB;
 import exceptions.*;
-import server.StoreProxy;
 
 import javax.xml.namespace.QName;
 import javax.xml.ws.Service;
@@ -17,11 +15,9 @@ import java.util.Map;
  */
 public class StubFacade {
     private final String locationName;
-    private final ORB orb;
     public StubFacade(String locationName, String[] args) {
         super();
         this.locationName = locationName;
-        this.orb = ORB.init(args, null);
     }
 
     public String addItem(String managerID, String itemID, String itemName, int quantity, int price) throws IncorrectUserRoleException, ManagerExternalStoreItemException, ManagerItemPriceMismatchException, MalformedURLException {
